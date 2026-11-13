@@ -227,14 +227,33 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
 
     <section className="market-intro">
       <div>
-        <span className="market-intro-kicker">{t.marketplace}</span>
-        <h1>{t.questions}</h1>
-        <p>{t.exploreDesc}</p>
+        <span className="market-intro-kicker">{language === "my" ? "အထူးရွေးချယ်ထားသော ဈေးကွက်များ" : "FEATURED MARKETS"}</span>
+        <h1>{language === "my" ? "လူစိတ်ဝင်စားမှု မြင့်မားသော ခန့်မှန်းချက်များ" : "What will happen next?"}</h1>
+        <p>{language === "my" ? "မြန်မာနိုင်ငံနှင့် ကမ္ဘာတစ်ဝန်းမှ စိတ်ဝင်စားဖွယ် မေးခွန်းများကို ရှာဖွေပါ။" : "Explore the questions people are watching. Compare outcomes and follow the latest probabilities."}</p>
       </div>
       <div className="market-intro-stats">
-        <div><strong>{fmt(markets.length, language)}</strong><span>{t.sampleMarkets}</span></div>
-        <div><strong>{fmt(watchlist.length, language)}</strong><span>{t.yourWatchlist}</span></div>
-        <div><strong>{fmt(positions.length, language)}</strong><span>{t.openPositions}</span></div>
+        <div><strong>{fmt(markets.length, language)}</strong><span>{language === "my" ? "နမူနာဈေးကွက်" : "Sample markets"}</span></div>
+        <div><strong>{fmt(watchlist.length, language)}</strong><span>{language === "my" ? "စောင့်ကြည့်စာရင်း" : "Watchlist"}</span></div>
+      </div>
+    </section>
+
+    <section className="featured-section" aria-label={language === "my" ? "အထူးဈေးကွက်များ" : "Featured markets"}>
+      <div className="featured-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> {language === "my" ? "ယခု လူစိတ်ဝင်စားမှု အများဆုံး" : "IN THE SPOTLIGHT"}</span><h2>{language === "my" ? "အထူးဈေးကွက်များ" : "Featured markets"}</h2></div><span className="featured-count">{language === "my" ? "နမူနာဒေတာ" : "DEMO DATA"}</span></div>
+      <div className="featured-grid">
+        {[...markets].sort((a,b)=>b.volume-a.volume).slice(0,4).map((m,i)=><button type="button" key={m.id} className={"featured-card featured-tone-"+m.tone} onClick={()=>choose(m.id)}>
+          <div className="featured-card-top"><span className="featured-symbol">{m.symbol}</span><span>{categoryLabel(m.category,language)}</span></div>
+          <h3>{language === "my" ? m.questionMm : m.question}</h3>
+          <div className="featured-probability"><strong>{fmt(m.yes,language)}%</strong><span>{language === "my" ? "မှန်နိုင်ခြေ" : "YES probability"}</span></div>
+          <div className="featured-track"><span style={{width:m.yes+"%"}} /></div>
+          <div className="featured-card-bottom"><span>{language === "my" ? "မှန်" : "Yes"} {m.yes}¢</span><span>{language === "my" ? "မှား" : "No"} {100-m.yes}¢</span><span>{t.vol} ₭{(m.volume/1000000).toFixed(1)}M</span></div>
+        </button>)}
+      </div>
+    </section>
+
+    <section className="hot-topics" aria-label={language === "my" ? "ရေပန်းစားသော အကြောင်းအရာများ" : "Hot topics"}>
+      <div className="hot-topics-title"><span className="hot-pulse" /> <strong>{language === "my" ? "ရေပန်းစားသော အကြောင်းအရာများ" : "Hot topics"}</strong><span>{language === "my" ? "လေ့လာရန်" : "Explore topics"}</span></div>
+      <div className="hot-topic-list">
+        {(["Myanmar","Economy","Crypto","World","Sports","Technology"] as Exclude<Category,"All">[]).map((c,i)=><button type="button" key={c} onClick={()=>{setCategory(c);document.getElementById("markets")?.scrollIntoView({behavior:"smooth"});}}><b>{i+1}</b><span>{categoryLabel(c,language)}</span><small>{language === "my" ? "ဈေးကွက်များ" : "markets"}</small></button>)}
       </div>
     </section>
 
@@ -242,7 +261,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
       <div className="section-heading">
         <div>
           <div className="eyebrow"><span className="eyebrow-line" /> {t.marketplace}</div>
-          <h2>{view === "watchlist" ? t.watchlist : view === "portfolio" ? t.portfolio : view === "activity" ? t.activity : t.questions}<span>.</span></h2>
+          <h2>{view === "watchlist" ? t.watchlist : view === "portfolio" ? t.portfolio : view === "activity" ? t.activity : (language === "my" ? "ဈေးကွက်အားလုံး" : "All markets")}<span>.</span></h2>
           <p>{view === "watchlist" ? t.watchlistDesc : view === "portfolio" ? t.portfolioDesc : view === "activity" ? t.activityDesc : t.exploreDesc}</p>
         </div>
         {(view === "explore" || view === "watchlist") && <div className="market-tools">
@@ -266,6 +285,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
                 <div className="probability-line"><span>{outcomeLabel("YES", language)} <b>{m.yes} {language === "my" ? "ပြား" : "Pyas"}</b></span><span className={m.change >= 0 ? "positive" : "negative"}>{m.change >= 0 ? "↗" : "↘"} {Math.abs(m.change).toFixed(1)}%</span></div>
                 <div className="probability-track"><span style={{ width: m.yes + "%" }} /></div>
               </div>
+              <div className="market-outcomes"><span className="market-yes">{language === "my" ? "မှန်" : "Yes"} <b>{m.yes}¢</b></span><span className="market-no">{language === "my" ? "မှား" : "No"} <b>{100-m.yes}¢</b></span></div>
               <div className="market-card-footer"><span>◷ {t.close} {dateLabel(m.closes, language)}</span><span>{t.vol} ₭{(m.volume / 1000000).toFixed(1)}M</span></div>
             </article>)}
             {!visible.length && <div className="empty-state"><strong>{view === "watchlist" ? t.noWatch : t.noMatch}</strong><p>{view === "watchlist" ? t.saveWatch : t.trySearch}</p></div>}
