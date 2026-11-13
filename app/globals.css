@@ -100,3 +100,44 @@ html[lang="my"] .empty-state p{font-size:14px;line-height:2}
  html[lang="my"] .portfolio-summary strong{font-size:18px}
  html[lang="my"] .footer>div{flex-wrap:wrap}
 }
+
+
+/* Global readability baseline for both English and Burmese interfaces. */
+html { font-size: 16px; }
+body { font-size: 15px; line-height: 1.65; }
+.demo-ribbon { font-size: 11px; line-height: 1.7; }
+.main-nav button, .language-switch, .primary-cta, .text-cta,
+.category-chip, .sort-button, .reset-button, .text-action,
+.preview-button, .cancel-button, .market-rules-link, .footer button { font-size: 14px; }
+.brand-word { font-size: 23px; }
+.brand-word small { font-size: 9px; }
+.eyebrow, .stat-label, .panel-kicker, .float-label { font-size: 12px; letter-spacing: .02em; }
+.hero-copy > p, .section-heading > div > p, .market-info p,
+.how-steps p, .confirm-modal > p { font-size: 15px; line-height: 1.8; }
+.market-card h3, .selected-market p { font-size: 16px; line-height: 1.65; }
+.market-category, .market-card-footer, .probability-line,
+.price-context, .trade-summary > div, .table-heading p,
+.position-market small, .activity-row small, .activity-row time { font-size: 12px; }
+.probability-line b, .outcome-switch button b { font-size: 15px; }
+.outcome-switch button, .quantity-label, .quick-quantities button,
+.portfolio-summary span, .position-row > div > span,
+.activity-row > div > span, .modal-breakdown > div { font-size: 13px; }
+.trade-summary strong, .position-row > div > strong,
+.activity-row > div > strong { font-size: 14px; }
+.panel-disclaimer, .trade-summary small, .rules-warning,
+.modal-warning { font-size: 12px; line-height: 1.7; }
+.how-steps strong { font-size: 15px; }
+.empty-state p { font-size: 14px; line-height: 1.8; }
+html[lang="my"] body { font-family: "Noto Sans Myanmar", "DM Sans", sans-serif; font-size: 16px; line-height: 1.9; }
+html[lang="my"] .hero h1, html[lang="my"] .section-heading h2,
+html[lang="my"] .how-section h2, html[lang="my"] .panel-heading h3,
+html[lang="my"] .confirm-modal h2 { font-family: "Noto Sans Myanmar", "DM Sans", sans-serif; letter-spacing: 0; }
+html[lang="my"] .market-card h3, html[lang="my"] .selected-market p,
+html[lang="my"] .position-market strong, html[lang="my"] .activity-row strong { line-height: 2; }
+@media (max-width: 560px) {
+  body { font-size: 15px; }
+  .main-nav button, .language-switch { font-size: 13px; }
+  .market-card h3 { font-size: 16px; }
+  .hero-copy > p, .section-heading > div > p { font-size: 15px; }
+  html[lang="my"] body { font-size: 16px; }
+}
