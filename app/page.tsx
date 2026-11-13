@@ -60,10 +60,28 @@ const copy = {
 } as const;
 
 const STORAGE_KEY = "mingala-demo-v3";
-const fmt = (n: number, locale: Locale) => new Intl.NumberFormat(locale === "my" ? "my-MM" : "en-US", { maximumFractionDigits: 0 }).format(n);
-const money = (pyas: number, locale: Locale) => locale === "my"
-  ? new Intl.NumberFormat("my-MM", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(pyas / 100) + " ကျပ်"
-  : "₭ " + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(pyas / 100);
+const MY_DIGITS: Record<string, string> = { "0":"၀", "1":"၁", "2":"၂", "3":"၃", "4":"၄", "5":"၅", "6":"၆", "7":"၇", "8":"၈", "9":"၉" };
+const groupedInteger = (value: number) => Math.trunc(value).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",");
+const localizeDigits = (value: string, locale: Locale) => locale === "my" ? value.replace(/[0-9]/g, digit => MY_DIGITS[digit]) : value;
+const fmt = (n: number, locale: Locale) => localizeDigits(groupedInteger(n), locale);
+const money = (pyas: number, locale: Locale) => {
+  const whole = Math.floor(pyas / 100);
+  const fraction = String(Math.abs(pyas % 100)).padStart(2, "0");
+  const amount = groupedInteger(whole) + "." + fraction;
+  return locale === "my" ? localizeDigits(amount, locale) + " ကျပ်" : "₭ " + amount;
+};
+const activityDate = (iso: string, locale: Locale) => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  // Myanmar time (UTC+06:30), formatted without locale-dependent Intl output.
+  const myanmarTime = new Date(date.getTime() + 390 * 60 * 1000);
+  const y = myanmarTime.getUTCFullYear();
+  const m = String(myanmarTime.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(myanmarTime.getUTCDate()).padStart(2, "0");
+  const h = String(myanmarTime.getUTCHours()).padStart(2, "0");
+  const min = String(myanmarTime.getUTCMinutes()).padStart(2, "0");
+  return localizeDigits(`${y}-${m}-${d} ${h}:${min}`, locale) + (locale === "my" ? " (မြန်မာစံတော်ချိန်)" : " MMT");
+};
 const categoryLabel = (c: Category, locale: Locale) => c === "All" ? copy[locale].all : copy[locale].categories[c];
 const outcomeLabel = (side: "YES" | "NO", locale: Locale) => locale === "my" ? (side === "YES" ? "မှန်" : "မှား") : side;
 const dateLabel = (date: string, locale: Locale) => locale === "my" ? ({ "Dec 31": "ဒီဇင်ဘာ ၃၁", "Dec 10": "ဒီဇင်ဘာ ၁၀", "May 24": "မေလ ၂၄", "Nov 30": "နိုဝင်ဘာ ၃၀" } as Record<string, string>)[date] ?? date : date;
@@ -298,7 +316,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
         <div className="table-heading"><div><h3>{t.recent}</h3><p>{t.history}</p></div><button className="reset-button" onClick={reset}>{t.reset}</button></div>
         {activity.length ? <div className="activity-list">{activity.map(a => {
           const m = markets.find(x => x.id === a.marketId)!;
-          return <div className="activity-row" key={a.id}><div><strong>{outcomeLabel(a.side, language)} · {fmt(a.shares, language)} {t.sharesLabel}</strong><small>{language === "my" ? m.questionMm : m.question}</small></div><div><span>{t.samplePrice}</span><strong>{a.price} {language === "my" ? "ပြား" : "Pyas"}</strong></div><div><span>{t.cost}</span><strong>{money(a.cost, language)}</strong></div><time>{new Date(a.at).toLocaleString(language === "my" ? "my-MM" : "en-US", { timeZone: "Asia/Yangon" })}</time></div>;
+          return <div className="activity-row" key={a.id}><div><strong>{outcomeLabel(a.side, language)} · {fmt(a.shares, language)} {t.sharesLabel}</strong><small>{language === "my" ? m.questionMm : m.question}</small></div><div><span>{t.samplePrice}</span><strong>{a.price} {language === "my" ? "ပြား" : "Pyas"}</strong></div><div><span>{t.cost}</span><strong>{money(a.cost, language)}</strong></div><time>{activityDate(a.at, language)}</time></div>;
         })}</div> : <div className="empty-state"><strong>{t.noActivity}</strong><p>{t.activityEmpty}</p><button className="primary-cta" onClick={() => setView("explore")}>{t.exploreMarkets} →</button></div>}
       </section>}
     </section>
