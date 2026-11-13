@@ -87,7 +87,7 @@ const outcomeLabel = (side: "YES" | "NO", locale: Locale) => locale === "my" ? (
 const dateLabel = (date: string, locale: Locale) => locale === "my" ? ({ "Dec 31": "ဒီဇင်ဘာ ၃၁", "Dec 10": "ဒီဇင်ဘာ ၁၀", "May 24": "မေလ ၂၄", "Nov 30": "နိုဝင်ဘာ ၃၀" } as Record<string, string>)[date] ?? date : date;
 
 export default function HomePage({ initialLocale }: { initialLocale?: Locale } = {}) {
-  const [language, setLanguage] = useState<Locale>(initialLocale ?? "en");
+  const [language, setLanguage] = useState<Locale>(initialLocale ?? "my");
   const [category, setCategory] = useState<Category>("All");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(1);
@@ -201,31 +201,17 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
       </div>
     </header>
 
-    <section className="hero">
-      <div className="hero-copy">
-        <div className="eyebrow"><span className="eyebrow-line" /> {t.eyebrow}</div>
-        <h1>{t.heroA}<br /><em>{t.heroB}</em></h1>
-        <p>{t.intro}</p>
-        <div className="hero-actions">
-          <button className="primary-cta" onClick={() => { setView("explore"); document.getElementById("markets")?.scrollIntoView({ behavior: "smooth" }); }}>{t.exploreMarkets} <span>↘</span></button>
-          <button className="text-cta" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}>{t.how} →</button>
-        </div>
-        <div className="hero-note">◇ {t.note}</div>
+    <section className="market-intro">
+      <div>
+        <span className="market-intro-kicker">{t.marketplace}</span>
+        <h1>{t.questions}</h1>
+        <p>{t.exploreDesc}</p>
       </div>
-      <div className="hero-art">
-        <div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="orbit orbit-three" />
-        <div className="hero-sun">?</div>
-        <div className="floating-card card-one"><span className="float-label">{t.community}</span><strong>64<span>%</span></strong><small>{t.signal}</small><div className="mini-bars"><i /><i /><i /><i /><i /><i /><i /></div></div>
-        <div className="floating-card card-two"><span className="float-label">{t.workspace}</span><div className="signal-row"><b>↗</b><strong>{t.explore}</strong></div><small>{t.learn}</small></div>
-        <div className="art-caption">{t.caption}</div>
+      <div className="market-intro-stats">
+        <div><strong>{fmt(markets.length, language)}</strong><span>{t.sampleMarkets}</span></div>
+        <div><strong>{fmt(watchlist.length, language)}</strong><span>{t.yourWatchlist}</span></div>
+        <div><strong>{fmt(positions.length, language)}</strong><span>{t.openPositions}</span></div>
       </div>
-    </section>
-
-    <section className="stats-strip">
-      <div><span className="stat-label">{t.sampleMarkets}</span><strong>{markets.length}</strong><small>{t.illustrative}</small></div>
-      <div><span className="stat-label">{t.yourWatchlist}</span><strong>{watchlist.length}</strong><small>{t.saved}</small></div>
-      <div><span className="stat-label">{t.openPositions}</span><strong>{positions.length}</strong><small>{t.localOnly}</small></div>
-      <div className="stats-aside"><span className="live-indicator" /> {t.disconnected}</div>
     </section>
 
     <section className="workspace" id="markets">
