@@ -255,7 +255,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
 
       {(view === "explore" || view === "watchlist") && <>
         <div className="category-row" role="group" aria-label={language === "my" ? "ဈေးကွက်အမျိုးအစားများ" : "Market categories"}>
-          {(["All", "Myanmar", "Economy", "Crypto", "World", "Sports", "Technology"] as Category[]).map(c => <button key={c} aria-pressed={category === c} className={category === c ? "category-chip selected" : "category-chip"} aria-pressed={category === c} onClick={() => setCategory(c)}>{c === "All" ? "✳ " : ""}{categoryLabel(c, language)}</button>)}
+          {(["All", "Myanmar", "Economy", "Crypto", "World", "Sports", "Technology"] as Category[]).map(c => <button key={c} aria-pressed={category === c} className={category === c ? "category-chip selected" : "category-chip"} onClick={() => setCategory(c)}>{c === "All" ? "✳ " : ""}{categoryLabel(c, language)}</button>)}
         </div>
         <div className="market-layout">
           <div className="market-grid">
