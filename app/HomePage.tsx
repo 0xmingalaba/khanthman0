@@ -65,9 +65,10 @@ const groupedInteger = (value: number) => Math.trunc(value).toString().replace(/
 const localizeDigits = (value: string, locale: Locale) => locale === "my" ? value.replace(/[0-9]/g, digit => MY_DIGITS[digit]) : value;
 const fmt = (n: number, locale: Locale) => localizeDigits(groupedInteger(n), locale);
 const money = (pyas: number, locale: Locale) => {
-  const whole = Math.floor(pyas / 100);
-  const fraction = String(Math.abs(pyas % 100)).padStart(2, "0");
-  const amount = groupedInteger(whole) + "." + fraction;
+  const absolute = Math.abs(Math.trunc(pyas));
+  const whole = Math.floor(absolute / 100);
+  const fraction = String(absolute % 100).padStart(2, "0");
+  const amount = (pyas < 0 ? "-" : "") + groupedInteger(whole) + "." + fraction;
   return locale === "my" ? localizeDigits(amount, locale) + " ကျပ်" : "₭ " + amount;
 };
 const activityDate = (iso: string, locale: Locale) => {
@@ -107,19 +108,42 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const saved = JSON.parse(raw);
-        if (Array.isArray(saved.watchlist)) setWatchlist(saved.watchlist);
-        if (Array.isArray(saved.positions)) setPositions(saved.positions);
-        if (Array.isArray(saved.activity)) setActivity(saved.activity);
-        if (Number.isSafeInteger(saved.balance)) setBalance(saved.balance);
-        if (!initialLocale && (saved.language === "en" || saved.language === "my")) setLanguage(saved.language);
+        const saved: unknown = JSON.parse(raw);
+        if (saved && typeof saved === "object") {
+          const data = saved as Record<string, unknown>;
+          if (Array.isArray(data.watchlist)) {
+            setWatchlist(data.watchlist.filter((id): id is number => Number.isSafeInteger(id) && markets.some(m => m.id === id)));
+          }
+          if (Array.isArray(data.positions)) {
+            setPositions(data.positions.filter((value): value is Position => {
+              if (!value || typeof value !== "object") return false;
+              const p = value as Record<string, unknown>;
+              return Number.isSafeInteger(p.marketId) && markets.some(m => m.id === p.marketId) &&
+                (p.side === "YES" || p.side === "NO") && Number.isSafeInteger(p.shares) &&
+                Number(p.shares) > 0 && Number(p.shares) <= 1000000 &&
+                Number.isSafeInteger(p.averagePrice) && Number(p.averagePrice) >= 1 && Number(p.averagePrice) <= 99;
+            }));
+          }
+          if (Array.isArray(data.activity)) {
+            setActivity(data.activity.filter((value): value is Activity => {
+              if (!value || typeof value !== "object") return false;
+              const a = value as Record<string, unknown>;
+              return typeof a.id === "string" && Number.isSafeInteger(a.marketId) && markets.some(m => m.id === a.marketId) &&
+                (a.side === "YES" || a.side === "NO") && Number.isSafeInteger(a.shares) && Number(a.shares) > 0 &&
+                Number.isSafeInteger(a.price) && Number(a.price) >= 1 && Number(a.price) <= 99 &&
+                Number.isSafeInteger(a.cost) && Number(a.cost) >= 0 && typeof a.at === "string";
+            }).slice(0, 100));
+          }
+          if (Number.isSafeInteger(data.balance) && Number(data.balance) >= 0 && Number(data.balance) <= 1000000000) setBalance(Number(data.balance));
+          if (!initialLocale && (data.language === "en" || data.language === "my")) setLanguage(data.language);
+        }
       }
     } catch { /* Ignore invalid local demo data and keep safe defaults. */ }
     setHydrated(true);
   }, [initialLocale]);
 
   useEffect(() => {
-    if (hydrated) window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ watchlist, positions, activity, balance, language }));
+    if (hydrated) { try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ watchlist, positions, activity, balance, language })); } catch { /* Storage may be unavailable or full; the current session remains usable. */ } }
   }, [hydrated, watchlist, positions, activity, balance, language]);
 
   useEffect(() => { document.documentElement.lang = language; }, [language]);
@@ -139,15 +163,15 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
   const t = copy[language];
   const selected = markets.find(m => m.id === selectedId) ?? markets[0];
   const visible = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase();
+    const q = query.trim().toLowerCase();
     const list = markets.filter(m =>
       (category === "All" || m.category === category) &&
       (view !== "watchlist" || watchlist.includes(m.id)) &&
-      (!q || (m.question + " " + m.questionMm + " " + m.category).toLocaleLowerCase().includes(q))
+      (!q || (m.question + " " + m.questionMm + " " + m.category).toLowerCase().includes(q))
     );
     if (sort === "volume") list.sort((a, b) => b.volume - a.volume);
     else if (sort === "probability") list.sort((a, b) => b.yes - a.yes);
-    else if (sort === "closing") list.sort((a, b) => a.closes.localeCompare(b.closes));
+    else if (sort === "closing") { const closeOrder: Record<string, number> = { "Nov 30": 20261130, "Dec 10": 20261210, "Dec 31": 20261231, "May 24": 20270524 }; list.sort((a, b) => (closeOrder[a.closes] ?? Number.MAX_SAFE_INTEGER) - (closeOrder[b.closes] ?? Number.MAX_SAFE_INTEGER)); }
     else list.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
     return list;
   }, [category, query, sort, view, watchlist]);
@@ -231,12 +255,12 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
 
       {(view === "explore" || view === "watchlist") && <>
         <div className="category-row" role="tablist" aria-label={language === "my" ? "ဈေးကွက်အမျိုးအစားများ" : "Market categories"}>
-          {(["All", "Myanmar", "Economy", "Crypto", "World", "Sports", "Technology"] as Category[]).map(c => <button key={c} role="tab" aria-selected={category === c} className={category === c ? "category-chip selected" : "category-chip"} onClick={() => setCategory(c)}>{c === "All" ? "✳ " : ""}{categoryLabel(c, language)}</button>)}
+          {(["All", "Myanmar", "Economy", "Crypto", "World", "Sports", "Technology"] as Category[]).map(c => <button key={c} role="tab" aria-selected={category === c} className={category === c ? "category-chip selected" : "category-chip"} aria-pressed={category === c} onClick={() => setCategory(c)}>{c === "All" ? "✳ " : ""}{categoryLabel(c, language)}</button>)}
         </div>
         <div className="market-layout">
           <div className="market-grid">
             {visible.map(m => <article key={m.id} className={selected.id === m.id ? "market-card chosen" : "market-card"}>
-              <div className="market-card-top"><span className={"market-symbol " + m.tone}>{m.symbol}</span><span className="market-category">{categoryLabel(m.category, language)}</span><button className={watchlist.includes(m.id) ? "watch-button watching" : "watch-button"} onClick={() => toggleWatch(m.id)} aria-label={watchlist.includes(m.id) ? t.remove : t.add}>{watchlist.includes(m.id) ? "★" : "☆"}</button></div>
+              <div className="market-card-top"><span className={"market-symbol " + m.tone}>{m.symbol}</span><span className="market-category">{categoryLabel(m.category, language)}</span><button className={watchlist.includes(m.id) ? "watch-button watching" : "watch-button"} onClick={() => toggleWatch(m.id)} aria-pressed={watchlist.includes(m.id)} aria-label={watchlist.includes(m.id) ? t.remove : t.add}>{watchlist.includes(m.id) ? "★" : "☆"}</button></div>
               <button className="market-card-main" onClick={() => choose(m.id)}>
                 <h3>{language === "my" ? m.questionMm : m.question}</h3>
                 <div className="probability-line"><span>{outcomeLabel("YES", language)} <b>{m.yes} {language === "my" ? "ပြား" : "Pyas"}</b></span><span className={m.change >= 0 ? "positive" : "negative"}>{m.change >= 0 ? "↗" : "↘"} {Math.abs(m.change).toFixed(1)}%</span></div>
@@ -266,7 +290,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
             </div>
             <button className="preview-button" disabled={!valid || cost > balance} onClick={() => setConfirming(true)}>{cost > balance ? t.insufficient : t.review} <span>→</span></button>
             <p className="panel-disclaimer">{t.disclaimer}</p>
-            {notice && <div className="notice-message" role="status">{notice}</div>}
+            {notice && <div className="notice-message" role="status" aria-live="polite">{notice}</div>}
             <button className="market-rules-link" onClick={() => document.getElementById("market-rules")?.scrollIntoView({ behavior: "smooth" })}>{t.readInfo} ↓</button>
           </aside>
         </div>
