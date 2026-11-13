@@ -92,6 +92,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
   const [category, setCategory] = useState<Category>("All");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(1);
+  const [featuredIndex, setFeaturedIndex] = useState(0);
   const [side, setSide] = useState<"YES" | "NO">("YES");
   const [quantity, setQuantity] = useState("100");
   const [sort, setSort] = useState("trending");
@@ -245,36 +246,36 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
     </header>
     {headerFeedback && <div className="header-feedback" role="status" aria-live="polite"><span>{headerFeedback}</span><button type="button" onClick={() => setHeaderFeedback("")} aria-label={language === "my" ? "အသိပေးချက် ပိတ်ရန်" : "Dismiss notice"}>×</button></div>}
 
-    <section className="market-intro">
-      <div>
-        <span className="market-intro-kicker">{language === "my" ? "အထူးရွေးချယ်ထားသော ဈေးကွက်များ" : "FEATURED MARKETS"}</span>
-        <h1>{language === "my" ? "လူစိတ်ဝင်စားမှု မြင့်မားသော ခန့်မှန်းချက်များ" : "What will happen next?"}</h1>
-        <p>{language === "my" ? "မြန်မာနိုင်ငံနှင့် ကမ္ဘာတစ်ဝန်းမှ စိတ်ဝင်စားဖွယ် မေးခွန်းများကို ရှာဖွေပါ။" : "Explore the questions people are watching. Compare outcomes and follow the latest probabilities."}</p>
+    <section className="discovery-hero" aria-label={language === "my" ? "အထူးဈေးကွက်နှင့် ရေပန်းစားသော အကြောင်းအရာများ" : "Featured markets and hot topics"}>
+      <div className="featured-carousel">
+        <div className="carousel-heading">
+          <span className="eyebrow"><span className="eyebrow-line" /> {language === "my" ? "အထူးရွေးချယ်ထားသော ဈေးကွက်" : "FEATURED MARKET"}</span>
+          <span className="featured-count">{language === "my" ? "နမူနာဒေတာ" : "DEMO DATA"}</span>
+        </div>
+        {(() => {
+          const featured = [...markets].sort((a,b)=>b.volume-a.volume);
+          const m = featured[featuredIndex % featured.length];
+          return <div className={"featured-spotlight featured-tone-"+m.tone}>
+            <div className="spotlight-top"><span className="featured-symbol">{m.symbol}</span><span>{categoryLabel(m.category,language)}</span><span className="spotlight-rank">{language === "my" ? "အထူးဈေးကွက်" : "SPOTLIGHT"}</span></div>
+            <button type="button" className="spotlight-question" onClick={()=>choose(m.id)}>{language === "my" ? m.questionMm : m.question}</button>
+            <div className="spotlight-probability"><strong>{fmt(m.yes,language)}%</strong><span>{language === "my" ? "မှန်နိုင်ခြေ" : "YES probability"}</span><span className="spotlight-change">{m.change >= 0 ? "↗" : "↘"} {Math.abs(m.change).toFixed(1)}%</span></div>
+            <div className="spotlight-track"><span style={{width:m.yes+"%"}} /></div>
+            <div className="spotlight-prices"><span>{language === "my" ? "မှန်" : "YES"} <b>{m.yes} {language === "my" ? "ပြား" : "P"}</b></span><span>{language === "my" ? "မှား" : "NO"} <b>{100-m.yes} {language === "my" ? "ပြား" : "P"}</b></span><span>{t.vol} <b>₭{(m.volume/1000000).toFixed(1)}M</b></span></div>
+            <div className="spotlight-bottom"><span>{language === "my" ? "ပိတ်မည့်ရက်" : "Closes"} · {dateLabel(m.closes,language)}</span><button type="button" className="spotlight-open" onClick={()=>choose(m.id)}>{language === "my" ? "ဈေးကွက်ကြည့်ရန်" : "View market"} <span>→</span></button></div>
+          </div>;
+        })()}
+        <div className="carousel-controls">
+          <span>{fmt(featuredIndex+1,language)} / {fmt(markets.length,language)}</span>
+          <div className="carousel-dots">{markets.map((m,i)=><button key={m.id} type="button" aria-label={language === "my" ? "အထူးဈေးကွက် "+(i+1) : "Featured market "+(i+1)} aria-current={featuredIndex===i ? "true" : undefined} className={featuredIndex===i ? "active" : ""} onClick={()=>setFeaturedIndex(i)} />)}</div>
+          <div className="carousel-arrows"><button type="button" aria-label={language === "my" ? "ယခင်ဈေးကွက်" : "Previous market"} onClick={()=>setFeaturedIndex(i=>(i+markets.length-1)%markets.length)}>‹</button><button type="button" aria-label={language === "my" ? "နောက်ဈေးကွက်" : "Next market"} onClick={()=>setFeaturedIndex(i=>(i+1)%markets.length)}>›</button></div>
+        </div>
       </div>
-      <div className="market-intro-stats">
-        <div><strong>{fmt(markets.length, language)}</strong><span>{language === "my" ? "နမူနာဈေးကွက်" : "Sample markets"}</span></div>
-        <div><strong>{fmt(watchlist.length, language)}</strong><span>{language === "my" ? "စောင့်ကြည့်စာရင်း" : "Watchlist"}</span></div>
-      </div>
-    </section>
-
-    <section className="featured-section" aria-label={language === "my" ? "အထူးဈေးကွက်များ" : "Featured markets"}>
-      <div className="featured-heading"><div><span className="eyebrow"><span className="eyebrow-line" /> {language === "my" ? "ယခု လူစိတ်ဝင်စားမှု အများဆုံး" : "IN THE SPOTLIGHT"}</span><h2>{language === "my" ? "အထူးဈေးကွက်များ" : "Featured markets"}</h2></div><span className="featured-count">{language === "my" ? "နမူနာဒေတာ" : "DEMO DATA"}</span></div>
-      <div className="featured-grid">
-        {[...markets].sort((a,b)=>b.volume-a.volume).slice(0,4).map((m,i)=><button type="button" key={m.id} className={"featured-card featured-tone-"+m.tone} onClick={()=>choose(m.id)}>
-          <div className="featured-card-top"><span className="featured-symbol">{m.symbol}</span><span>{categoryLabel(m.category,language)}</span></div>
-          <h3>{language === "my" ? m.questionMm : m.question}</h3>
-          <div className="featured-probability"><strong>{fmt(m.yes,language)}%</strong><span>{language === "my" ? "မှန်နိုင်ခြေ" : "YES probability"}</span></div>
-          <div className="featured-track"><span style={{width:m.yes+"%"}} /></div>
-          <div className="featured-card-bottom"><span>{language === "my" ? "မှန်" : "Yes"} {m.yes} {language === "my" ? "ပြား" : "P"}</span><span>{language === "my" ? "မှား" : "No"} {100-m.yes} {language === "my" ? "ပြား" : "P"}</span><span>{t.vol} ₭{(m.volume/1000000).toFixed(1)}M</span></div>
-        </button>)}
-      </div>
-    </section>
-
-    <section className="hot-topics" aria-label={language === "my" ? "ရေပန်းစားသော အကြောင်းအရာများ" : "Hot topics"}>
-      <div className="hot-topics-title"><span className="hot-pulse" /> <strong>{language === "my" ? "ရေပန်းစားသော အကြောင်းအရာများ" : "Hot topics"}</strong><span>{language === "my" ? "လေ့လာရန်" : "Explore topics"}</span></div>
-      <div className="hot-topic-list">
-        {(["Myanmar","Economy","Crypto","World","Sports","Technology"] as Exclude<Category,"All">[]).map((c,i)=><button type="button" key={c} onClick={()=>{setView("explore");setCategory(c);document.getElementById("markets")?.scrollIntoView({behavior:"smooth"});}}><b>{i+1}</b><span>{categoryLabel(c,language)}</span><small>{language === "my" ? "ဈေးကွက်များ" : "markets"}</small></button>)}
-      </div>
+      <aside className="hot-topics-panel" aria-label={language === "my" ? "ရေပန်းစားသော အကြောင်းအရာများ" : "Hot topics"}>
+        <div className="hot-topics-title"><span className="hot-pulse" /><strong>{language === "my" ? "ရေပန်းစားသော အကြောင်းအရာများ" : "Hot topics"}</strong><span>{language === "my" ? "လေ့လာရန်" : "Explore topics"}</span></div>
+        <div className="hot-topic-list">
+          {(["Myanmar","Economy","Crypto","World","Sports","Technology"] as Exclude<Category,"All">[]).map((c,i)=><button type="button" key={c} onClick={()=>{setView("explore");setCategory(c);document.getElementById("markets")?.scrollIntoView({behavior:"smooth"});}}><b>{i+1}</b><span>{categoryLabel(c,language)}</span><small>{language === "my" ? "ဈေးကွက်များ" : "markets"}</small><span className="topic-arrow">→</span></button>)}
+        </div>
+      </aside>
     </section>
 
     <section className="workspace" id="markets">
