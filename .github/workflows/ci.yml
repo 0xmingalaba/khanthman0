@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - chatgpt/m1-ui-overhaul
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Typecheck and production build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Production dependency security audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: TypeScript typecheck
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
+      - name: Production route smoke tests
+        run: |
+          npm run start -- --hostname 127.0.0.1 > /tmp/mingala-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:3000/my >/dev/null; then break; fi
+            sleep 1
+          done
+          my_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/my)
+          en_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/en)
+          root_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/)
+          test "$my_status" = "200"
+          test "$en_status" = "200"
+          test "$root_status" = "307"
+          curl --silent --fail http://127.0.0.1:3000/my | grep -q "ဈေးကွက်"
+          curl --silent --fail http://127.0.0.1:3000/en | grep -q "THE MARKETPLACE"
