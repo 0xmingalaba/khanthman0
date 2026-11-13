@@ -96,7 +96,6 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
   const [quantity, setQuantity] = useState("100");
   const [sort, setSort] = useState("trending");
   const [view, setView] = useState<"explore" | "watchlist" | "portfolio" | "activity">("explore");
-  const [predictOpen, setPredictOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [watchlist, setWatchlist] = useState<number[]>([2, 4]);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -157,7 +156,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
         e.preventDefault();
         document.getElementById("market-search")?.focus();
       }
-      if (e.key === "Escape") { setConfirming(false); setPredictOpen(false); setMenuOpen(false); }
+      if (e.key === "Escape") { setConfirming(false); setMenuOpen(false); }
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
@@ -215,19 +214,10 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
   return <main className="app-shell">
     <div className="demo-ribbon"><span className="pulse-dot" /> {t.ribbon}</div>
     <header className="topbar">
-      <a className="brand" href="#" onClick={e => { e.preventDefault(); setView("explore"); setCategory("All"); setPredictOpen(false); setMenuOpen(false); }} aria-label="Mingala home">
+      <a className="brand" href="#" onClick={e => { e.preventDefault(); setView("explore"); setCategory("All"); setMenuOpen(false); }} aria-label="Mingala home">
         <span className="brand-mark" aria-hidden="true"><span /></span>
         <span className="brand-word">Mingala</span>
       </a>
-      <span className="nav-divider" aria-hidden="true">|</span>
-      <div className="predict-wrap">
-        <button className="predict-trigger" type="button" aria-expanded={predictOpen} aria-haspopup="true" onClick={() => { setPredictOpen(open => !open); setMenuOpen(false); }}>
-          Predict <span className="dropdown-chevron" aria-hidden="true">⌄</span>
-        </button>
-        {predictOpen && <div className="nav-dropdown predict-dropdown" role="menu" aria-label={language === "my" ? "ခန့်မှန်းဈေးကွက် အမျိုးအစားများ" : "Prediction market categories"}>
-          {(["All", "Myanmar", "Economy", "Crypto", "World", "Sports", "Technology"] as Category[]).map(c => <button type="button" role="menuitem" key={c} onClick={() => { setView("explore"); setCategory(c); setPredictOpen(false); document.getElementById("markets")?.scrollIntoView({ behavior: "smooth" }); }}>{categoryLabel(c, language)}</button>)}
-        </div>}
-      </div>
       <label className="top-search">
         <span className="search-glyph" aria-hidden="true">⌕</span>
         <input id="market-search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t.search} aria-label={t.search} />
@@ -241,7 +231,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
         <button type="button" className="signup-button" onClick={() => setHeaderFeedback(language === "my" ? "အကောင့်ဖွင့်ခြင်းကို နောက်အဆင့်တွင် ထည့်သွင်းပါမည်။ ယခုသည် သရုပ်ပြမှုသာ ဖြစ်သည်။" : "Sign up will be added in a later phase. This is currently a local demo.")}>{language === "my" ? "စာရင်းသွင်းရန်" : "Sign up"}</button>
       </div>
       <div className="menu-wrap">
-        <button type="button" className="menu-trigger" aria-label={language === "my" ? "မီနူးဖွင့်ရန်" : "Open menu"} aria-expanded={menuOpen} aria-haspopup="true" onClick={() => { setMenuOpen(open => !open); setPredictOpen(false); }}>
+        <button type="button" className="menu-trigger" aria-label={language === "my" ? "မီနူးဖွင့်ရန်" : "Open menu"} aria-expanded={menuOpen} aria-haspopup="true" onClick={() => setMenuOpen(open => !open)}>
           <span /><span />
         </button>
         {menuOpen && <div className="nav-dropdown menu-dropdown" role="menu" aria-label={language === "my" ? "အခြားလမ်းညွှန်များ" : "More navigation"}>
