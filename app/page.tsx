@@ -1,133 +1,68 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type Category = "All" | "Myanmar" | "Economy" | "Crypto" | "World" | "Sports";
-type Market = {
-  id: number;
-  category: Exclude<Category, "All">;
-  question: string;
-  questionMm: string;
-  yes: number;
-  volume: number;
-  change: number;
-  closes: string;
-  symbol: string;
-  tone: string;
-};
-
-const markets: Market[] = [
-  { id: 1, category: "Economy", question: "Will USD/MMK trade below 4,000 by December 31?", questionMm: "ဒီဇင်ဘာ ၃၁ ရက်မတိုင်မီ USD/MMK ၄,၀၀၀ အောက် ရောက်မလား။", yes: 34, volume: 12840000, change: 4.2, closes: "Dec 31", symbol: "₮", tone: "mint" },
-  { id: 2, category: "Myanmar", question: "Will Myanmar rice exports increase this quarter?", questionMm: "ယခုသုံးလပတ်တွင် မြန်မာ့ဆန်တင်ပို့မှု တိုးလာမလား။", yes: 67, volume: 8420000, change: 2.8, closes: "Dec 31", symbol: "🌾", tone: "gold" },
-  { id: 3, category: "Crypto", question: "Will Bitcoin close above $110,000 this year?", questionMm: "ယခုနှစ်အတွင်း Bitcoin ဈေးနှုန်း ဒေါ်လာ ၁၁၀,၀၀၀ အထက် ပိတ်မလား။", yes: 58, volume: 32100000, change: -1.4, closes: "Dec 31", symbol: "₿", tone: "violet" },
-  { id: 4, category: "World", question: "Will the Fed cut interest rates at its next meeting?", questionMm: "နောက်လာမည့် အစည်းအဝေးတွင် Fed က အတိုးနှုန်း လျှော့ချမလား။", yes: 72, volume: 19600000, change: 1.1, closes: "Dec 10", symbol: "⌁", tone: "blue" },
-  { id: 5, category: "Sports", question: "Will Arsenal finish in the Premier League top two?", questionMm: "ပရီးမီးယားလိဂ်တွင် Arsenal က ထိပ်ဆုံးနှစ်သင်းအတွင်း ဝင်မလား။", yes: 41, volume: 6750000, change: -2.3, closes: "May 24", symbol: "⚽", tone: "coral" },
-  { id: 6, category: "Myanmar", question: "Will Yangon record more than 10 days of heavy rain this month?", questionMm: "ယခုလ ရန်ကုန်တွင် မိုးသည်းထန်စွာ ရွာသည့်ရက် ၁၀ ရက်ကျော် ရှိမလား။", yes: 23, volume: 4120000, change: 0.7, closes: "Nov 30", symbol: "☂", tone: "blue" }
+type Category = "All" | "Myanmar" | "Economy" | "Crypto" | "World" | "Sports" | "Technology";
+type Market = { id:number; category:Exclude<Category,"All">; question:string; questionMm:string; yes:number; volume:number; change:number; closes:string; symbol:string; tone:string; description:string; resolution:string };
+type Position = { marketId:number; side:"YES"|"NO"; shares:number; averagePrice:number };
+type Activity = { id:string; marketId:number; side:"YES"|"NO"; shares:number; price:number; cost:number; at:string };
+const markets:Market[] = [
+{id:1,category:"Economy",question:"Will USD/MMK trade below 4,000 by December 31?",questionMm:"ဒီဇင်ဘာ ၃၁ ရက်မတိုင်မီ USD/MMK ၄,၀၀၀ အောက် ရောက်မလား။",yes:34,volume:12840000,change:4.2,closes:"Dec 31",symbol:"ကျပ်",tone:"mint",description:"A question about the USD/MMK exchange rate and the direction of Myanmar's currency market.",resolution:"A real market must name an authoritative reference-rate source, observation date and timezone."},
+{id:2,category:"Myanmar",question:"Will Myanmar rice exports increase this quarter?",questionMm:"ယခုသုံးလပတ်တွင် မြန်မာ့ဆန်တင်ပို့မှု တိုးလာမလား။",yes:67,volume:8420000,change:2.8,closes:"Dec 31",symbol:"🌾",tone:"gold",description:"A question about the change in Myanmar rice export volumes during the current quarter.",resolution:"A real market must define the official export dataset and comparison period."},
+{id:3,category:"Crypto",question:"Will Bitcoin close above $110,000 this year?",questionMm:"ယခုနှစ်အတွင်း Bitcoin ဈေးနှုန်း ဒေါ်လာ ၁၁၀,၀၀၀ အထက် ပိတ်မလား။",yes:58,volume:32100000,change:-1.4,closes:"Dec 31",symbol:"₿",tone:"violet",description:"A market tracking the year-end closing price of Bitcoin.",resolution:"A real market must specify the BTC/USD benchmark, source and UTC cutoff."},
+{id:4,category:"World",question:"Will the Fed cut interest rates at its next meeting?",questionMm:"နောက်လာမည့် အစည်းအဝေးတွင် Fed က အတိုးနှုန်း လျှော့ချမလား။",yes:72,volume:19600000,change:1.1,closes:"Dec 10",symbol:"⌁",tone:"blue",description:"A market about the next announced Federal Reserve policy-rate decision.",resolution:"Resolve using the official Federal Reserve statement for the specified meeting."},
+{id:5,category:"Sports",question:"Will Arsenal finish in the Premier League top two?",questionMm:"ပရီးမီးယားလိဂ်တွင် Arsenal က ထိပ်ဆုံးနှစ်သင်းအတွင်း ဝင်မလား။",yes:41,volume:6750000,change:-2.3,closes:"May 24",symbol:"⚽",tone:"coral",description:"A season-long question about the final Premier League table.",resolution:"Resolve using the official final Premier League standings."},
+{id:6,category:"Myanmar",question:"Will Yangon record more than 10 days of heavy rain this month?",questionMm:"ယခုလ ရန်ကုန်တွင် မိုးသည်းထန်စွာ ရွာသည့်ရက် ၁၀ ရက်ကျော် ရှိမလား။",yes:23,volume:4120000,change:0.7,closes:"Nov 30",symbol:"☂",tone:"blue",description:"A weather question based on daily rainfall observations in Yangon.",resolution:"A real market must define the weather station and measurable rainfall threshold."},
+{id:7,category:"Technology",question:"Will a major AI model launch before year-end?",questionMm:"ယခုနှစ်မကုန်မီ အဆင့်မြင့် AI မော်ဒယ်သစ် ထွက်ရှိမလား။",yes:61,volume:9100000,change:3.6,closes:"Dec 31",symbol:"✳",tone:"mint",description:"A market about a publicly announced release of a new frontier AI model.",resolution:"A real market must define qualifying capabilities and what counts as a public launch."},
+{id:8,category:"Economy",question:"Will gold exceed $3,000 per ounce this year?",questionMm:"ယခုနှစ်အတွင်း ရွှေတစ်အောင်စ ဒေါ်လာ ၃,၀၀၀ ကျော်မလား။",yes:48,volume:15400000,change:-0.6,closes:"Dec 31",symbol:"Au",tone:"gold",description:"A market tracking the international spot gold price.",resolution:"A real market must specify a gold benchmark, observation window and timezone."}
 ];
+const categories:Category[]=["All","Myanmar","Economy","Crypto","World","Sports","Technology"];
+const fmt=(n:number)=>new Intl.NumberFormat("en-US",{maximumFractionDigits:0}).format(n);
+const money=(n:number)=>"₭ "+fmt(n);
+const STORAGE_KEY="mingala-demo-v2";
 
-const categories: Category[] = ["All", "Myanmar", "Economy", "Crypto", "World", "Sports"];
-const fmt = (n: number) => new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n);
-
-export default function HomePage() {
-  const [category, setCategory] = useState<Category>("All");
-  const [query, setQuery] = useState("");
-  const [language, setLanguage] = useState<"en" | "my">("en");
-  const [selected, setSelected] = useState<Market>(markets[0]);
-  const [side, setSide] = useState<"YES" | "NO">("YES");
-  const [quantity, setQuantity] = useState("100");
-  const [watchlist, setWatchlist] = useState<number[]>([2, 4]);
-  const [notice, setNotice] = useState("");
-
-  const visibleMarkets = useMemo(() => markets.filter((market) => {
-    const matchesCategory = category === "All" || market.category === category;
-    const text = language === "my" ? market.questionMm : market.question;
-    return matchesCategory && text.toLowerCase().includes(query.toLowerCase());
-  }), [category, language, query]);
-
-  const qty = Math.max(0, Math.floor(Number(quantity) || 0));
-  const price = side === "YES" ? selected.yes : 100 - selected.yes;
-  const cost = Math.round(qty * price);
-  const potential = qty * 100;
-  const profit = potential - cost;
-
-  const toggleWatch = (id: number) => setWatchlist((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
-
-  return (
-    <main className="app-shell">
-      <div className="demo-ribbon"><span className="pulse-dot" /> DEMO ENVIRONMENT <span className="ribbon-divider">/</span> VIRTUAL CREDITS ONLY · NO REAL-MONEY TRADING</div>
-      <header className="topbar">
-        <a className="brand" href="#" aria-label="Mingala home">
-          <span className="brand-mark"><span /></span>
-          <span className="brand-word">mingala<span>.</span><small>PREDICTION MARKET</small></span>
-        </a>
-        <nav className="main-nav" aria-label="Main navigation">
-          <a className="nav-active" href="#markets">Explore</a>
-          <a href="#how-it-works">How it works</a>
-          <a href="#leaderboard">Leaderboard</a>
-        </nav>
-        <div className="top-actions">
-          <button className="language-switch" onClick={() => setLanguage(language === "en" ? "my" : "en")} aria-label="Switch language">{language === "en" ? "EN" : "မြန်မာ"} <span>⌄</span></button>
-          <button className="login-button" onClick={() => setNotice("Account access will be connected in a later milestone.")}>Log in</button>
-          <button className="signup-button" onClick={() => setNotice("Account registration will be connected in a later milestone.")}>Get started <span>↗</span></button>
-        </div>
-      </header>
-
-      <section className="hero">
-        <div className="hero-copy">
-          <div className="eyebrow"><span className="eyebrow-line" /> THE FUTURE IS A QUESTION</div>
-          <h1>What will<br /><em>happen next?</em></h1>
-          <p>Explore what people think about the future.<br />Discover probabilities. Follow the questions that matter.</p>
-          <div className="hero-actions"><a className="primary-cta" href="#markets">Explore markets <span>↘</span></a><a className="text-cta" href="#how-it-works">How Mingala works <span>→</span></a></div>
-          <div className="hero-note"><span className="tiny-shield">◇</span> Built for curious minds across Myanmar and beyond.</div>
-        </div>
-        <div className="hero-art" aria-label="Abstract probability illustration">
-          <div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="orbit orbit-three" />
-          <div className="hero-sun"><span>?</span></div>
-          <div className="floating-card card-one"><span className="float-label">MARKET SENTIMENT</span><strong>68<span>%</span></strong><small>YES probability</small><div className="mini-bars"><i /><i /><i /><i /><i /><i /><i /></div></div>
-          <div className="floating-card card-two"><span className="float-label">COMMUNITY SIGNAL</span><div className="signal-row"><b>↑</b><strong>+12.4%</strong></div><small>over the last 7 days</small></div>
-          <div className="art-caption">A better way to think about tomorrow.</div>
-        </div>
-      </section>
-
-      <section className="stats-strip" aria-label="Platform overview">
-        <div><span className="stat-label">MARKETS TRACKED</span><strong>24</strong><small>Questions worth watching</small></div>
-        <div><span className="stat-label">COMMUNITY MEMBERS</span><strong>1,280</strong><small>Curious minds, one place</small></div>
-        <div><span className="stat-label">VIRTUAL CREDITS IN PLAY</span><strong>₭ 84.2M</strong><small>Demo figures only</small></div>
-        <div className="stats-aside"><span className="live-indicator" /> A growing view of what comes next.</div>
-      </section>
-
-      <section className="markets-section" id="markets">
-        <div className="section-heading">
-          <div><div className="eyebrow"><span className="eyebrow-line" /> THE MARKETPLACE</div><h2>Questions in play<span>.</span></h2><p>Explore active questions and see where the crowd stands.</p></div>
-          <div className="market-tools"><label className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search markets..." aria-label="Search markets" /><kbd>⌘ K</kbd></label><button className="sort-button" onClick={() => setNotice("Market sorting will be added with live market data.")}>Trending <span>⌄</span></button></div>
-        </div>
-        <div className="category-row" role="tablist" aria-label="Market categories">{categories.map((item) => <button key={item} role="tab" aria-selected={category === item} className={category === item ? "category-chip selected" : "category-chip"} onClick={() => setCategory(item)}>{item === "All" ? "✳ " : ""}{item}</button>)}</div>
-        <div className="market-layout">
-          <div className="market-grid">
-            {visibleMarkets.map((market) => <article key={market.id} className={selected.id === market.id ? "market-card chosen" : "market-card"}>
-              <div className="market-card-top"><span className={`market-symbol ${market.tone}`}>{market.symbol}</span><span className="market-category">{market.category}</span><button className={watchlist.includes(market.id) ? "watch-button watching" : "watch-button"} onClick={() => toggleWatch(market.id)} aria-label={watchlist.includes(market.id) ? "Remove from watchlist" : "Add to watchlist"}>{watchlist.includes(market.id) ? "★" : "☆"}</button></div>
-              <button className="market-card-main" onClick={() => { setSelected(market); setNotice(""); }}><h3>{language === "my" ? market.questionMm : market.question}</h3><div className="probability-line"><span>YES <b>{market.yes}¢</b></span><span className={market.change >= 0 ? "positive" : "negative"}>{market.change >= 0 ? "↗" : "↘"} {Math.abs(market.change).toFixed(1)}%</span></div><div className="probability-track"><span style={{ width: `${market.yes}%` }} /></div></button>
-              <div className="market-card-footer"><span>◷ Closes {market.closes}</span><span>Vol. ₭{(market.volume / 1000000).toFixed(1)}M</span></div>
-            </article>)}
-            {visibleMarkets.length === 0 && <div className="empty-state"><span>⌕</span><strong>No matching markets</strong><p>Try another search or category.</p></div>}
-          </div>
-
-          <aside className="trade-panel">
-            <div className="panel-heading"><div><span className="panel-kicker">QUICK VIEW</span><h3>Trade preview</h3></div><span className="demo-tag">DEMO</span></div>
-            <div className="selected-market"><span className={`market-symbol small ${selected.tone}`}>{selected.symbol}</span><p>{language === "my" ? selected.questionMm : selected.question}</p></div>
-            <div className="outcome-switch"><button className={side === "YES" ? "outcome-yes active" : "outcome-yes"} onClick={() => setSide("YES")}>YES <b>{selected.yes}¢</b></button><button className={side === "NO" ? "outcome-no active" : "outcome-no"} onClick={() => setSide("NO")}>NO <b>{100 - selected.yes}¢</b></button></div>
-            <div className="order-book-mini"><div className="book-head"><span>INDICATIVE PRICE</span><span>DEMO LIQUIDITY</span></div><div className="book-row"><span>Best bid</span><b>{Math.max(1, price - 2)}¢</b><span className="book-amount">12,400 shares</span></div><div className="book-row"><span>Best ask</span><b>{Math.min(99, price + 2)}¢</b><span className="book-amount">8,250 shares</span></div></div>
-            <label className="quantity-label" htmlFor="quantity">SHARES TO BUY</label><div className="quantity-input"><input id="quantity" type="number" min="1" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} /><span>SHARES</span></div>
-            <div className="trade-summary"><div><span>Estimated cost</span><strong>₭ {fmt(cost)}</strong></div><div><span>Potential payout</span><strong>₭ {fmt(potential)}</strong></div><div className="summary-profit"><span>Potential profit</span><strong>₭ {fmt(profit)}</strong></div></div>
-            <button className="preview-button" disabled={qty < 1 || qty > 1000000} onClick={() => setNotice("Demo only — no order was submitted and no credits were moved.")}>Preview {side} order <span>→</span></button>
-            <p className="panel-disclaimer">Illustrative preview only. No account, order book or balance is connected yet.</p>
-            {notice && <div className="notice-message" role="status">{notice}</div>}
-          </aside>
-        </div>
-      </section>
-
-      <section className="how-section" id="how-it-works"><div><div className="eyebrow"><span className="eyebrow-line" /> SIMPLE BY DESIGN</div><h2>Think clearly.<br /><em>See possibilities.</em></h2></div><div className="how-steps"><div><span>01</span><strong>Find a question</strong><p>Explore topics and follow the events that matter to you.</p></div><div><span>02</span><strong>Form a view</strong><p>Read the market signal and consider both outcomes.</p></div><div><span>03</span><strong>Learn as it unfolds</strong><p>Track how expectations change as new information arrives.</p></div></div></section>
-      <footer className="footer"><a className="brand footer-brand" href="#"><span className="brand-mark"><span /></span><span className="brand-word">mingala<span>.</span><small>PREDICTION MARKET</small></span></a><p>Independent thinking about the future.</p><div><a href="#markets">Explore</a><a href="#how-it-works">How it works</a><span>© 2026 Mingala</span></div></footer>
-    </main>
-  );
+export default function HomePage(){
+const [category,setCategory]=useState<Category>("All"),[query,setQuery]=useState(""),[language,setLanguage]=useState<"en"|"my">("en");
+const [selectedId,setSelectedId]=useState(1),[side,setSide]=useState<"YES"|"NO">("YES"),[quantity,setQuantity]=useState("100");
+const [sort,setSort]=useState("trending"),[view,setView]=useState<"explore"|"watchlist"|"portfolio"|"activity">("explore");
+const [watchlist,setWatchlist]=useState<number[]>([2,4]),[positions,setPositions]=useState<Position[]>([]),[activity,setActivity]=useState<Activity[]>([]);
+const [balance,setBalance]=useState(10000000),[notice,setNotice]=useState(""),[confirming,setConfirming]=useState(false),[hydrated,setHydrated]=useState(false);
+useEffect(()=>{try{const raw=window.localStorage.getItem(STORAGE_KEY);if(raw){const saved=JSON.parse(raw);if(Array.isArray(saved.watchlist))setWatchlist(saved.watchlist);if(Array.isArray(saved.positions))setPositions(saved.positions);if(Array.isArray(saved.activity))setActivity(saved.activity);if(Number.isSafeInteger(saved.balance))setBalance(saved.balance);}}catch{}setHydrated(true);},[]);
+useEffect(()=>{if(hydrated)window.localStorage.setItem(STORAGE_KEY,JSON.stringify({watchlist,positions,activity,balance}));},[hydrated,watchlist,positions,activity,balance]);
+useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();document.getElementById("market-search")?.focus();}if(e.key==="Escape")setConfirming(false);};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);},[]);
+const selected=markets.find(m=>m.id===selectedId)||markets[0];
+const visible=useMemo(()=>{const q=query.trim().toLowerCase();let list=markets.filter(m=>(category==="All"||m.category===category)&&(view!=="watchlist"||watchlist.includes(m.id))&&(!q||(m.question+" "+m.questionMm+" "+m.category).toLowerCase().includes(q)));if(sort==="volume")list.sort((a,b)=>b.volume-a.volume);else if(sort==="probability")list.sort((a,b)=>b.yes-a.yes);else if(sort==="closing")list.sort((a,b)=>a.closes.localeCompare(b.closes));else list.sort((a,b)=>b.volume-a.volume);return list;},[category,query,sort,view,watchlist]);
+const price=side==="YES"?selected.yes:100-selected.yes,qty=Number(quantity),valid=Number.isSafeInteger(qty)&&qty>0&&qty<=1000000,cost=valid?qty*price:0,payout=valid?qty*100:0,profit=payout-cost;
+const markValue=positions.reduce((sum,p)=>{const m=markets.find(x=>x.id===p.marketId);return sum+(m?p.shares*(p.side==="YES"?m.yes:100-m.yes):0);},0);
+const toggleWatch=(id:number)=>setWatchlist(cur=>cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);
+const choose=(id:number)=>{setSelectedId(id);setSide("YES");setNotice("");setView("explore");};
+const placeDemo=()=>{if(!valid||cost>balance)return;setPositions(cur=>{const found=cur.find(p=>p.marketId===selected.id&&p.side===side);if(!found)return [...cur,{marketId:selected.id,side,shares:qty,averagePrice:price}];const total=found.shares+qty,avg=Math.round((found.shares*found.averagePrice+qty*price)/total);return cur.map(p=>p===found?{...p,shares:total,averagePrice:avg}:p);});setBalance(b=>b-cost);setActivity(cur=>[{id:String(Date.now()),marketId:selected.id,side,shares:qty,price,cost,at:new Date().toISOString()},...cur].slice(0,100));setNotice("Simulated "+side+" position added. No server order was created.");setConfirming(false);setView("portfolio");};
+const reset=()=>{if(!window.confirm("Reset local demo balance, positions, activity and watchlist?"))return;setBalance(10000000);setPositions([]);setActivity([]);setWatchlist([2,4]);setNotice("Local demo account reset.");};
+return <main className="app-shell">
+<div className="demo-ribbon"><span className="pulse-dot"/> SIMULATION MODE <span className="ribbon-divider">/</span> LOCAL DEMO ONLY · NO REAL MONEY · ILLUSTRATIVE DATA</div>
+<header className="topbar"><a className="brand" href="#" onClick={()=>setView("explore")}><span className="brand-mark"><span/></span><span className="brand-word">mingala<span>.</span><small>PREDICTION MARKET</small></span></a>
+<nav className="main-nav" aria-label="Main navigation"><button className={view==="explore"?"nav-active":""} onClick={()=>setView("explore")}>Explore</button><button className={view==="watchlist"?"nav-active":""} onClick={()=>setView("watchlist")}>Watchlist <i>{watchlist.length}</i></button><button className={view==="portfolio"?"nav-active":""} onClick={()=>setView("portfolio")}>Portfolio</button><button className={view==="activity"?"nav-active":""} onClick={()=>setView("activity")}>Activity</button></nav>
+<div className="top-actions"><button className="language-switch" onClick={()=>setLanguage(x=>x==="en"?"my":"en")}>{language==="en"?"EN":"မြန်မာ"} ⌄</button><div className="balance-pill"><span>DEMO BALANCE</span><strong>{money(balance/100)}</strong></div></div></header>
+<section className="hero"><div className="hero-copy"><div className="eyebrow"><span className="eyebrow-line"/> A MARKETPLACE FOR WHAT'S NEXT</div><h1>Make your view<br/><em>count.</em></h1><p>Explore questions shaping tomorrow. Compare probabilities, follow new information and test your conviction in a transparent virtual-credit simulation.</p><div className="hero-actions"><button className="primary-cta" onClick={()=>{setView("explore");document.getElementById("markets")?.scrollIntoView({behavior:"smooth"});}}>Explore markets <span>↘</span></button><button className="text-cta" onClick={()=>document.getElementById("how-it-works")?.scrollIntoView({behavior:"smooth"})}>How it works →</button></div><div className="hero-note">◇ Built for curious minds across Myanmar and beyond.</div></div>
+<div className="hero-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="orbit orbit-three"/><div className="hero-sun">?</div><div className="floating-card card-one"><span className="float-label">COMMUNITY VIEW</span><strong>64<span>%</span></strong><small>illustrative YES signal</small><div className="mini-bars"><i/><i/><i/><i/><i/><i/><i/></div></div><div className="floating-card card-two"><span className="float-label">YOUR WORKSPACE</span><div className="signal-row"><b>↗</b><strong>Explore</strong></div><small>Learn by testing ideas</small></div><div className="art-caption">Every forecast starts with a question.</div></div></section>
+<section className="stats-strip"><div><span className="stat-label">SAMPLE MARKETS</span><strong>{markets.length}</strong><small>Illustrative questions</small></div><div><span className="stat-label">YOUR WATCHLIST</span><strong>{watchlist.length}</strong><small>Saved on this device</small></div><div><span className="stat-label">OPEN DEMO POSITIONS</span><strong>{positions.length}</strong><small>Local simulation only</small></div><div className="stats-aside"><span className="live-indicator"/> Not connected to a live exchange.</div></section>
+<section className="workspace" id="markets"><div className="section-heading"><div><div className="eyebrow"><span className="eyebrow-line"/> THE MARKETPLACE</div><h2>{view==="watchlist"?"Your watchlist":view==="portfolio"?"Your portfolio":view==="activity"?"Your activity":"Questions in play"}<span>.</span></h2><p>{view==="watchlist"?"Keep an eye on the questions you care about.":view==="portfolio"?"Track your virtual positions and simulated account value.":view==="activity"?"A local record of your demo actions on this device.":"Discover markets, compare outcomes and explore the crowd's view."}</p></div>
+{(view==="explore"||view==="watchlist")&&<div className="market-tools"><label className="search-box"><span>⌕</span><input id="market-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search markets..." aria-label="Search markets"/><kbd>⌘ K</kbd></label><select className="sort-button" value={sort} onChange={e=>setSort(e.target.value)} aria-label="Sort markets"><option value="trending">Trending</option><option value="volume">Highest volume</option><option value="probability">Highest YES</option><option value="closing">Closing soon</option></select></div>}</div>
+{(view==="explore"||view==="watchlist")&&<><div className="category-row" role="tablist" aria-label="Market categories">{categories.map(c=><button key={c} role="tab" aria-selected={category===c} className={category===c?"category-chip selected":"category-chip"} onClick={()=>setCategory(c)}>{c==="All"?"✳ ":""}{c}</button>)}</div>
+<div className="market-layout"><div className="market-grid">{visible.map(m=><article key={m.id} className={selected.id===m.id?"market-card chosen":"market-card"}><div className="market-card-top"><span className={"market-symbol "+m.tone}>{m.symbol}</span><span className="market-category">{m.category}</span><button className={watchlist.includes(m.id)?"watch-button watching":"watch-button"} onClick={()=>toggleWatch(m.id)} aria-label={watchlist.includes(m.id)?"Remove from watchlist":"Add to watchlist"}>{watchlist.includes(m.id)?"★":"☆"}</button></div><button className="market-card-main" onClick={()=>choose(m.id)}><h3>{language==="my"?m.questionMm:m.question}</h3><div className="probability-line"><span>YES <b>{m.yes}¢</b></span><span className={m.change>=0?"positive":"negative"}>{m.change>=0?"↗":"↘"} {Math.abs(m.change).toFixed(1)}%</span></div><div className="probability-track"><span style={{width:m.yes+"%"}}/></div></button><div className="market-card-footer"><span>◷ Closes {m.closes}</span><span>Vol. ₭{(m.volume/1000000).toFixed(1)}M</span></div></article>)}{!visible.length&&<div className="empty-state"><strong>{view==="watchlist"?"Your watchlist is empty":"No matching markets"}</strong><p>{view==="watchlist"?"Save a market with the star icon to find it here.":"Try another search or category."}</p></div>}</div>
+<aside className="trade-panel"><div className="panel-heading"><div><span className="panel-kicker">MARKET SNAPSHOT</span><h3>Trade simulator</h3></div><span className="demo-tag">LOCAL DEMO</span></div><div className="selected-market"><span className={"market-symbol small "+selected.tone}>{selected.symbol}</span><p>{language==="my"?selected.questionMm:selected.question}</p></div>
+<div className="outcome-switch"><button className={side==="YES"?"outcome-yes active":"outcome-yes"} onClick={()=>setSide("YES")}>YES <b>{selected.yes}¢</b></button><button className={side==="NO"?"outcome-no active":"outcome-no"} onClick={()=>setSide("NO")}>NO <b>{100-selected.yes}¢</b></button></div>
+<div className="price-context"><span>Illustrative price</span><strong>{price} Pyas</strong></div><label className="quantity-label" htmlFor="quantity">SHARES TO BUY</label><div className="quantity-input"><button onClick={()=>setQuantity(String(Math.max(1,(Number(quantity)||1)-10)))} aria-label="Decrease quantity">−</button><input id="quantity" type="number" min="1" max="1000000" step="1" value={quantity} onChange={e=>setQuantity(e.target.value)}/><button onClick={()=>setQuantity(String(Math.min(1000000,(Number(quantity)||0)+10)))} aria-label="Increase quantity">+</button></div>
+<div className="quick-quantities">{[10,50,100,500].map(n=><button key={n} className={qty===n?"quick-selected":""} onClick={()=>setQuantity(String(n))}>{n}</button>)}</div>
+<div className="trade-summary"><div><span>Estimated cost</span><strong>{money(cost/100)}</strong></div><div><span>Potential payout</span><strong>{money(payout/100)}</strong></div><div className="summary-profit"><span>Potential profit</span><strong>{money(profit/100)}</strong></div><small>100 Pyas payout per winning share. Simplified demo calculation.</small></div>
+<button className="preview-button" disabled={!valid||cost>balance} onClick={()=>setConfirming(true)}>{cost>balance?"Insufficient demo balance":"Review demo order"} <span>→</span></button><p className="panel-disclaimer">No real order book, account or server is connected. Prices and volumes are sample data.</p>{notice&&<div className="notice-message" role="status">{notice}</div>}<button className="market-rules-link" onClick={()=>document.getElementById("market-rules")?.scrollIntoView({behavior:"smooth"})}>Read market information ↓</button></aside></div>
+<section className="market-info" id="market-rules"><div><span className="panel-kicker">ABOUT THIS QUESTION</span><h3>{selected.question}</h3><p>{selected.description}</p></div><div><span className="panel-kicker">RESOLUTION EXAMPLE</span><p>{selected.resolution}</p><span className="rules-warning">Example only. Final rules and authoritative sources must be approved before a real market opens.</span></div></section></>}
+{view==="portfolio"&&<section className="portfolio-view"><div className="portfolio-summary"><div><span>AVAILABLE DEMO BALANCE</span><strong>{money(balance/100)}</strong></div><div><span>POSITION MARK VALUE</span><strong>{money(markValue/100)}</strong></div><div><span>SIMULATED EQUITY</span><strong>{money((balance+markValue)/100)}</strong></div><div><span>OPEN POSITIONS</span><strong>{positions.length}</strong></div></div><div className="table-heading"><div><h3>Open positions</h3><p>Marked using the sample probabilities shown in this demo.</p></div><button className="reset-button" onClick={reset}>Reset demo account</button></div>
+{positions.length?<div className="position-list">{positions.map((p,i)=>{const m=markets.find(x=>x.id===p.marketId)!;const mark=p.side==="YES"?m.yes:100-m.yes;return <div className="position-row" key={p.marketId+"-"+p.side+"-"+i}><div className="position-market"><span className={"market-symbol small "+m.tone}>{m.symbol}</span><div><strong>{m.question}</strong><small>{p.side} · {fmt(p.shares)} shares</small></div></div><div><span>Avg. price</span><strong>{p.averagePrice}¢</strong></div><div><span>Mark</span><strong>{mark}¢</strong></div><div><span>Unrealized P/L</span><strong className={mark>=p.averagePrice?"positive":"negative"}>{money((mark-p.averagePrice)*p.shares/100)}</strong></div><button className="text-action" onClick={()=>choose(m.id)}>View market</button></div>;})}</div>:<div className="empty-state"><strong>No demo positions yet</strong><p>Choose a market and review a simulated order to create your first position.</p><button className="primary-cta" onClick={()=>setView("explore")}>Explore markets →</button></div>}<p className="panel-disclaimer">Balances and positions are stored only in this browser on this device. They are not real funds or a server account.</p></section>}
+{view==="activity"&&<section className="activity-view"><div className="table-heading"><div><h3>Recent demo activity</h3><p>Your local simulated order history.</p></div><button className="reset-button" onClick={reset}>Reset demo account</button></div>{activity.length?<div className="activity-list">{activity.map(a=>{const m=markets.find(x=>x.id===a.marketId)!;return <div className="activity-row" key={a.id}><div><strong>{a.side} · {fmt(a.shares)} shares</strong><small>{m.question}</small></div><div><span>Execution example</span><strong>{a.price}¢</strong></div><div><span>Cost</span><strong>{money(a.cost/100)}</strong></div><time>{new Date(a.at).toLocaleString()}</time></div>;})}</div>:<div className="empty-state"><strong>No activity yet</strong><p>Your simulated orders will appear here.</p><button className="primary-cta" onClick={()=>setView("explore")}>Explore markets →</button></div>}</section>}
+</section>
+<section className="how-section" id="how-it-works"><div><div className="eyebrow"><span className="eyebrow-line"/> SIMPLE BY DESIGN</div><h2>Think clearly.<br/><em>See possibilities.</em></h2></div><div className="how-steps"><div><span>01</span><strong>Find a question</strong><p>Explore topics and follow the events that matter to you.</p></div><div><span>02</span><strong>Form a view</strong><p>Compare YES and NO probabilities using sample prices.</p></div><div><span>03</span><strong>Learn as it unfolds</strong><p>Track simulated positions and revisit your assumptions.</p></div></div></section>
+<footer className="footer"><a className="brand footer-brand" href="#" onClick={()=>setView("explore")}><span className="brand-mark"><span/></span><span className="brand-word">mingala<span>.</span><small>PREDICTION MARKET</small></span></a><p>Independent thinking about the future.</p><div><button onClick={()=>setView("explore")}>Explore</button><button onClick={()=>setView("watchlist")}>Watchlist</button><span>© 2026 Mingala</span></div></footer>
+{confirming&&<div className="modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setConfirming(false);}}><section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title"><button className="modal-close" onClick={()=>setConfirming(false)} aria-label="Close">×</button><span className="panel-kicker">SIMULATED ORDER REVIEW</span><h2 id="confirm-title">Review your {side} position</h2><p>{selected.question}</p><div className="modal-breakdown"><div><span>Outcome</span><strong>{side}</strong></div><div><span>Shares</span><strong>{fmt(qty)}</strong></div><div><span>Sample price</span><strong>{price} Pyas</strong></div><div><span>Demo cost</span><strong>{money(cost/100)}</strong></div><div><span>Maximum payout if correct</span><strong>{money(payout/100)}</strong></div><div className="summary-profit"><span>Potential profit before fees</span><strong>{money(profit/100)}</strong></div></div><div className="modal-warning">This action changes only your local demo balance and simulated portfolio. It does not place a real trade or contact a server.</div><button className="preview-button" onClick={placeDemo}>Confirm simulated position</button><button className="cancel-button" onClick={()=>setConfirming(false)}>Go back</button></section></div>}
+</main>;
 }
