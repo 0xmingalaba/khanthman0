@@ -501,7 +501,7 @@ body{
   color:#eaf2ff;
 }
 body:before{
-  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:
     radial-gradient(1px 1px at 8% 13%,rgba(255,255,255,.8) 98%,transparent),
     radial-gradient(1px 1px at 21% 67%,rgba(190,221,255,.7) 98%,transparent),
@@ -512,7 +512,7 @@ body:before{
   background-size:310px 270px,370px 330px,430px 390px,510px 470px,290px 350px,440px 410px;
   opacity:.62;
 }
-.app-shell{max-width:1800px;overflow:clip;position:relative}
+.app-shell{max-width:1800px;overflow:clip;position:relative;z-index:1}
 .demo-ribbon{
   background:rgba(5,14,29,.82);color:#b6c9e2;border-bottom:1px solid rgba(169,202,239,.12);
   backdrop-filter:blur(18px);letter-spacing:1.05px
