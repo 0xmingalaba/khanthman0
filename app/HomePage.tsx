@@ -219,6 +219,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
         <button className={view === "portfolio" ? "nav-active" : ""} onClick={() => setView("portfolio")}>{t.portfolio}</button>
         <button className={view === "activity" ? "nav-active" : ""} onClick={() => setView("activity")}>{t.activity}</button>
       </nav>
+      <label className="top-search"><span>⌕</span><input id="market-search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t.search} aria-label={t.search} /><kbd>⌘ K</kbd></label>
       <div className="top-actions">
         <button className="language-switch" onClick={() => window.location.assign(language === "en" ? "/my" : "/en")} aria-label={language === "my" ? "ဘာသာစကား ပြောင်းရန်" : "Change language"}>{language === "en" ? "EN / မြန်မာ" : "မြန်မာ / EN"}</button>
         <div className="balance-pill"><span>{t.balance}</span><strong>{money(balance, language)}</strong></div>
@@ -265,7 +266,6 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
           <p>{view === "watchlist" ? t.watchlistDesc : view === "portfolio" ? t.portfolioDesc : view === "activity" ? t.activityDesc : t.exploreDesc}</p>
         </div>
         {(view === "explore" || view === "watchlist") && <div className="market-tools">
-          <label className="search-box"><span>⌕</span><input id="market-search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t.search} aria-label={t.search} /><kbd>⌘ K</kbd></label>
           <select className="sort-button" value={sort} onChange={e => setSort(e.target.value)} aria-label={language === "my" ? "ဈေးကွက်စီရန်" : "Sort markets"}>
             <option value="trending">{t.trending}</option><option value="volume">{t.volume}</option><option value="probability">{t.highestYes}</option><option value="closing">{t.closing}</option>
           </select>
