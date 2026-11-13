@@ -96,6 +96,8 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
   const [quantity, setQuantity] = useState("100");
   const [sort, setSort] = useState("trending");
   const [view, setView] = useState<"explore" | "watchlist" | "portfolio" | "activity">("explore");
+  const [predictOpen, setPredictOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [watchlist, setWatchlist] = useState<number[]>([2, 4]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
@@ -212,19 +214,45 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
   return <main className="app-shell">
     <div className="demo-ribbon"><span className="pulse-dot" /> {t.ribbon}</div>
     <header className="topbar">
-      <a className="brand" href="#" onClick={() => setView("explore")}><span className="brand-mark"><span /></span><span className="brand-word">mingala<span>.</span><small>PREDICTION MARKET</small></span></a>
-      <nav className="main-nav" aria-label={language === "my" ? "ပင်မ လမ်းညွှန်" : "Main navigation"}>
-        <button className={view === "explore" ? "nav-active" : ""} onClick={() => setView("explore")}>{t.explore}</button>
-        <button className={view === "watchlist" ? "nav-active" : ""} onClick={() => setView("watchlist")}>{t.watchlist} <i className="nav-count">{watchlist.length}</i></button>
-        <button className={view === "portfolio" ? "nav-active" : ""} onClick={() => setView("portfolio")}>{t.portfolio}</button>
-        <button className={view === "activity" ? "nav-active" : ""} onClick={() => setView("activity")}>{t.activity}</button>
-      </nav>
-      <label className="top-search"><span>⌕</span><input id="market-search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t.search} aria-label={t.search} /><kbd>⌘ K</kbd></label>
-      <div className="top-actions">
-        <button className="language-switch" onClick={() => window.location.assign(language === "en" ? "/my" : "/en")} aria-label={language === "my" ? "ဘာသာစကား ပြောင်းရန်" : "Change language"}>{language === "en" ? "EN / မြန်မာ" : "မြန်မာ / EN"}</button>
-        <div className="balance-pill"><span>{t.balance}</span><strong>{money(balance, language)}</strong></div>
+      <a className="brand" href="#" onClick={e => { e.preventDefault(); setView("explore"); setCategory("All"); setPredictOpen(false); setMenuOpen(false); }} aria-label="Mingala home">
+        <span className="brand-mark" aria-hidden="true"><span /></span>
+        <span className="brand-word">Mingala</span>
+      </a>
+      <span className="nav-divider" aria-hidden="true">|</span>
+      <div className="predict-wrap">
+        <button className="predict-trigger" type="button" aria-expanded={predictOpen} aria-haspopup="true" onClick={() => { setPredictOpen(open => !open); setMenuOpen(false); }}>
+          Predict <span className="dropdown-chevron" aria-hidden="true">⌄</span>
+        </button>
+        {predictOpen && <div className="nav-dropdown predict-dropdown" role="menu" aria-label={language === "my" ? "ခန့်မှန်းဈေးကွက် အမျိုးအစားများ" : "Prediction market categories"}>
+          {(["All", "Myanmar", "Economy", "Crypto", "World", "Sports", "Technology"] as Category[]).map(c => <button type="button" role="menuitem" key={c} onClick={() => { setView("explore"); setCategory(c); setPredictOpen(false); document.getElementById("markets")?.scrollIntoView({ behavior: "smooth" }); }}>{categoryLabel(c, language)}</button>)}
+        </div>}
+      </div>
+      <label className="top-search">
+        <span className="search-glyph" aria-hidden="true">⌕</span>
+        <input id="market-search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t.search} aria-label={t.search} />
+        <kbd>⌘ K</kbd>
+      </label>
+      <a className="how-link" href="#how-it-works" onClick={e => { e.preventDefault(); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}>
+        <span className="info-icon" aria-hidden="true">i</span>{t.how}
+      </a>
+      <div className="auth-actions">
+        <button type="button" className="login-button" onClick={() => setNotice(language === "my" ? "အကောင့်ဝင်ရောက်မှုကို နောက်အဆင့်တွင် ထည့်သွင်းပါမည်။ ယခုသည် သရုပ်ပြမှုသာ ဖြစ်သည်။" : "Login will be added in a later phase. This is currently a local demo.")}>{language === "my" ? "ဝင်ရန်" : "Log in"}</button>
+        <button type="button" className="signup-button" onClick={() => setNotice(language === "my" ? "အကောင့်ဖွင့်ခြင်းကို နောက်အဆင့်တွင် ထည့်သွင်းပါမည်။ ယခုသည် သရုပ်ပြမှုသာ ဖြစ်သည်။" : "Sign up will be added in a later phase. This is currently a local demo.")}>{language === "my" ? "စာရင်းသွင်းရန်" : "Sign up"}</button>
+      </div>
+      <div className="menu-wrap">
+        <button type="button" className="menu-trigger" aria-label={language === "my" ? "မီနူးဖွင့်ရန်" : "Open menu"} aria-expanded={menuOpen} aria-haspopup="true" onClick={() => { setMenuOpen(open => !open); setPredictOpen(false); }}>
+          <span /><span />
+        </button>
+        {menuOpen && <div className="nav-dropdown menu-dropdown" role="menu" aria-label={language === "my" ? "အခြားလမ်းညွှန်များ" : "More navigation"}>
+          <button type="button" role="menuitem" onClick={() => { setView("watchlist"); setMenuOpen(false); }}>{t.watchlist} <i className="nav-count">{watchlist.length}</i></button>
+          <button type="button" role="menuitem" onClick={() => { setView("portfolio"); setMenuOpen(false); }}>{t.portfolio}</button>
+          <button type="button" role="menuitem" onClick={() => { setView("activity"); setMenuOpen(false); }}>{t.activity}</button>
+          <button type="button" role="menuitem" onClick={() => { window.location.assign(language === "en" ? "/my" : "/en"); }}>{language === "en" ? "မြန်မာ" : "English"}</button>
+          <div className="menu-balance"><span>{t.balance}</span><strong>{money(balance, language)}</strong></div>
+        </div>}
       </div>
     </header>
+    {notice && <div className="header-feedback" role="status" aria-live="polite">{notice}</div>}
 
     <section className="market-intro">
       <div>
