@@ -254,18 +254,18 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
       </div>
 
       {(view === "explore" || view === "watchlist") && <>
-        <div className="category-row" role="tablist" aria-label={language === "my" ? "ဈေးကွက်အမျိုးအစားများ" : "Market categories"}>
-          {(["All", "Myanmar", "Economy", "Crypto", "World", "Sports", "Technology"] as Category[]).map(c => <button key={c} role="tab" aria-selected={category === c} className={category === c ? "category-chip selected" : "category-chip"} aria-pressed={category === c} onClick={() => setCategory(c)}>{c === "All" ? "✳ " : ""}{categoryLabel(c, language)}</button>)}
+        <div className="category-row" role="group" aria-label={language === "my" ? "ဈေးကွက်အမျိုးအစားများ" : "Market categories"}>
+          {(["All", "Myanmar", "Economy", "Crypto", "World", "Sports", "Technology"] as Category[]).map(c => <button key={c} aria-pressed={category === c} className={category === c ? "category-chip selected" : "category-chip"} aria-pressed={category === c} onClick={() => setCategory(c)}>{c === "All" ? "✳ " : ""}{categoryLabel(c, language)}</button>)}
         </div>
         <div className="market-layout">
           <div className="market-grid">
             {visible.map(m => <article key={m.id} className={selected.id === m.id ? "market-card chosen" : "market-card"}>
               <div className="market-card-top"><span className={"market-symbol " + m.tone}>{m.symbol}</span><span className="market-category">{categoryLabel(m.category, language)}</span><button className={watchlist.includes(m.id) ? "watch-button watching" : "watch-button"} onClick={() => toggleWatch(m.id)} aria-pressed={watchlist.includes(m.id)} aria-label={watchlist.includes(m.id) ? t.remove : t.add}>{watchlist.includes(m.id) ? "★" : "☆"}</button></div>
-              <button className="market-card-main" onClick={() => choose(m.id)}>
+              <div className="market-card-main" role="button" tabIndex={0} onClick={() => choose(m.id)} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(m.id); } }} aria-label={language === "my" ? m.questionMm : m.question}>
                 <h3>{language === "my" ? m.questionMm : m.question}</h3>
                 <div className="probability-line"><span>{outcomeLabel("YES", language)} <b>{m.yes} {language === "my" ? "ပြား" : "Pyas"}</b></span><span className={m.change >= 0 ? "positive" : "negative"}>{m.change >= 0 ? "↗" : "↘"} {Math.abs(m.change).toFixed(1)}%</span></div>
                 <div className="probability-track"><span style={{ width: m.yes + "%" }} /></div>
-              </button>
+              </div>
               <div className="market-card-footer"><span>◷ {t.close} {dateLabel(m.closes, language)}</span><span>{t.vol} ₭{(m.volume / 1000000).toFixed(1)}M</span></div>
             </article>)}
             {!visible.length && <div className="empty-state"><strong>{view === "watchlist" ? t.noWatch : t.noMatch}</strong><p>{view === "watchlist" ? t.saveWatch : t.trySearch}</p></div>}
