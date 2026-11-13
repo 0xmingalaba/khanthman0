@@ -141,3 +141,145 @@ html[lang="my"] .position-market strong, html[lang="my"] .activity-row strong { 
   .hero-copy > p, .section-heading > div > p { font-size: 15px; }
   html[lang="my"] body { font-size: 16px; }
 }
+
+
+/* Mingala market-terminal redesign: familiar prediction-market information hierarchy, original brand styling. */
+:root{--ink:#182b31;--muted:#667780;--paper:#f5f7f8;--line:#e6ebed;--green:#087d69;--green-dark:#056452}
+html,body{background:#f5f7f8}
+.app-shell{max-width:none;min-height:100vh;overflow:visible}
+.demo-ribbon{min-height:28px;background:#102f31;color:#d9eee7;font-size:11px;letter-spacing:.15px}
+.topbar{height:68px;position:sticky;top:0;z-index:15;padding:0 clamp(18px,5vw,76px);background:#fff;border-bottom:1px solid #e7ecee;box-shadow:0 2px 10px #172d3210}
+.brand-mark{background:#087d69}
+.brand-word{font-size:23px}
+.main-nav{gap:25px}
+.main-nav button,.footer button{font-size:14px}
+.main-nav button.nav-active:after{bottom:-19px;height:3px;border-radius:3px}
+.language-switch{font-size:13px}
+.balance-pill{border-radius:8px;background:#f2faf6;border-color:#dcece3;padding:8px 12px}
+.balance-pill span{font-size:9px;letter-spacing:.3px}
+.balance-pill strong{font-size:14px}
+.market-intro{padding:30px clamp(18px,5vw,76px) 22px;background:#fff;border-bottom:1px solid #e8edef;display:flex;justify-content:space-between;align-items:center;gap:25px}
+.market-intro-kicker{font-size:12px;font-weight:800;color:#087d69;letter-spacing:.5px}
+.market-intro h1{font-size:clamp(26px,3vw,38px);line-height:1.35;letter-spacing:-1px;margin:7px 0 5px;color:#182b31}
+.market-intro p{font-size:14px;color:#74838a;margin:0;line-height:1.7}
+.market-intro-stats{display:flex;gap:30px;align-items:center}
+.market-intro-stats>div{display:flex;flex-direction:column;gap:3px;min-width:78px}
+.market-intro-stats strong{font-family:Manrope,sans-serif;font-size:23px;color:#172e32}
+.market-intro-stats span{font-size:11px;color:#819097}
+.workspace{padding:28px clamp(18px,5vw,76px) 60px;max-width:1600px;margin:0 auto}
+.section-heading{align-items:center;margin-bottom:20px}
+.section-heading h2{font-size:27px;letter-spacing:-.8px;margin:8px 0 4px}
+.section-heading p{font-size:13px;line-height:1.65}
+.eyebrow{font-size:11px;letter-spacing:.3px}
+.market-tools{gap:10px}
+.search-box{width:min(310px,27vw);height:42px;border-radius:9px;padding:0 13px}
+.search-box input{font-size:13px}
+.search-box kbd{font-size:10px}
+.sort-button{height:42px;border-radius:9px;font-size:13px;padding:0 13px}
+.category-row{gap:8px;margin:16px 0 18px;padding-bottom:8px}
+.category-chip{font-size:13px;padding:9px 15px;border-radius:999px;border-color:#e5ebed;background:#fff;color:#5d7077}
+.category-chip.selected{background:#e6f5ef;border-color:#bfe5d4;color:#086b59;font-weight:800}
+.market-layout{grid-template-columns:minmax(0,1fr) 340px;gap:20px}
+.market-grid{grid-template-columns:1fr;gap:9px}
+.market-card{display:grid;grid-template-columns:38px minmax(0,1fr) minmax(180px,240px);grid-template-rows:auto auto auto;align-items:center;column-gap:14px;row-gap:2px;padding:13px 16px;border:1px solid #e6ebed;border-radius:11px;box-shadow:0 1px 2px #1b353b08;min-width:0}
+.market-card:hover,.market-card.chosen{border-color:#9fd7c2;box-shadow:0 5px 18px #087d6912;background:#fff}
+.market-card-top{display:contents}
+.market-card-top .market-symbol{grid-column:1;grid-row:1/4;width:38px;height:38px;border-radius:10px;font-size:16px}
+.market-category{grid-column:2;grid-row:1;font-size:11px;color:#7d8c91}
+.watch-button{grid-column:3;grid-row:1;justify-self:end;font-size:19px}
+.market-card-main{grid-column:2/4;grid-row:2/3;display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,240px);grid-template-rows:auto auto;align-items:center;gap:2px 18px;padding:3px 0 5px}
+.market-card h3{grid-column:1;grid-row:1/3;font-size:15px;line-height:1.55;min-height:0;margin:0;padding-right:6px;font-weight:700;color:#23383d}
+.probability-line{grid-column:2;grid-row:1;display:flex;justify-content:space-between;font-size:12px;white-space:nowrap}
+.probability-line b{font-size:15px;color:#087d69}
+.probability-track{grid-column:2;grid-row:2;height:5px;margin-top:5px}
+.market-card-footer{grid-column:2/4;grid-row:3;border-top:1px solid #f0f3f4;padding-top:7px;font-size:11px;color:#87969a}
+.trade-panel{top:84px;border:1px solid #e2e9eb;border-radius:13px;padding:20px;box-shadow:0 5px 24px #1b353b0a}
+.panel-heading h3{font-size:19px}
+.panel-kicker{font-size:10px;letter-spacing:.35px}
+.demo-tag{font-size:10px;border-radius:5px}
+.selected-market p{font-size:14px;line-height:1.7}
+.outcome-switch button{font-size:13px;padding:12px;border-radius:8px}
+.outcome-switch button b{font-size:14px}
+.price-context{font-size:13px}
+.price-context strong{font-size:15px}
+.quantity-label{font-size:11px;letter-spacing:.3px}
+.quantity-input{height:44px;border-radius:8px}
+.quick-quantities button{font-size:12px;border-radius:7px;padding:8px}
+.trade-summary>div{font-size:13px}
+.trade-summary strong{font-size:14px}
+.trade-summary .summary-profit strong{font-size:17px}
+.trade-summary small,.panel-disclaimer{font-size:11px;line-height:1.7}
+.preview-button{font-size:14px;padding:14px;border-radius:8px}
+.market-rules-link{font-size:12px}
+.market-info{gap:14px;margin-top:18px}
+.market-info>div{border-radius:11px;padding:18px}
+.market-info h3{font-size:16px}
+.market-info p{font-size:13px;line-height:1.8}
+.how-section{max-width:1450px;margin:0 auto;padding:36px clamp(18px,5vw,76px) 54px}
+.footer{padding:22px clamp(18px,5vw,76px)}
+/* Larger, comfortable Burmese typography within the denser market layout. */
+html[lang="my"] .market-intro h1{font-size:clamp(27px,3vw,39px);line-height:1.65;letter-spacing:0}
+html[lang="my"] .market-intro p{font-size:15px;line-height:2}
+html[lang="my"] .market-intro-stats span{font-size:12px;line-height:1.8}
+html[lang="my"] .section-heading h2{font-size:27px;line-height:1.7}
+html[lang="my"] .section-heading p{font-size:14px;line-height:2}
+html[lang="my"] .market-card h3{font-size:16px;line-height:1.95}
+html[lang="my"] .market-category,.market-card-footer{font-size:12px;line-height:1.8}
+html[lang="my"] .probability-line{font-size:13px;line-height:1.8}
+html[lang="my"] .probability-line b{font-size:16px}
+html[lang="my"] .trade-panel .panel-heading h3{font-size:20px;line-height:1.7}
+html[lang="my"] .selected-market p{font-size:15px;line-height:2}
+html[lang="my"] .outcome-switch button{font-size:14px;line-height:1.9}
+html[lang="my"] .outcome-switch button b{font-size:15px}
+html[lang="my"] .trade-summary>div{font-size:14px;line-height:1.9}
+html[lang="my"] .trade-summary strong{font-size:15px}
+html[lang="my"] .preview-button{font-size:15px;line-height:1.9}
+@media(max-width:1000px){
+ .market-layout{grid-template-columns:minmax(0,1fr) 310px}
+ .market-intro-stats{gap:15px}
+ .market-card{grid-template-columns:34px minmax(0,1fr) minmax(150px,200px);column-gap:10px}
+ .market-card-main{grid-template-columns:minmax(0,1fr) minmax(130px,190px);column-gap:10px}
+}
+@media(max-width:820px){
+ .topbar{position:relative;height:auto;min-height:70px;padding:12px 5%;gap:12px}
+ .market-intro{padding:25px 6%;align-items:flex-start;flex-direction:column}
+ .market-intro-stats{width:100%;justify-content:flex-start}
+ .workspace{padding:28px 5% 45px}
+ .section-heading{align-items:flex-start}
+ .market-layout{grid-template-columns:1fr}
+ .trade-panel{grid-row:1;position:static}
+ .market-grid{grid-row:2}
+ .how-section{margin:0 5%;padding-left:0;padding-right:0}
+}
+@media(max-width:560px){
+ .topbar{padding:11px 4%}
+ .brand-word{font-size:20px}
+ .main-nav{gap:12px}
+ .main-nav button{font-size:12px}
+ .top-actions{gap:5px}
+ .balance-pill{padding:6px 8px}
+ .balance-pill span{font-size:8px}
+ .balance-pill strong{font-size:11px}
+ .market-intro{padding:20px 5%}
+ .market-intro-stats{gap:16px}
+ .market-intro-stats strong{font-size:19px}
+ .market-intro-stats span{font-size:10px}
+ .section-heading h2{font-size:25px}
+ .market-tools{width:100%}
+ .search-box{width:auto;flex:1;min-width:0}
+ .search-box kbd{display:none}
+ .sort-button{max-width:45%;font-size:11px;padding:0 8px}
+ .market-card{grid-template-columns:32px minmax(0,1fr) 28px;grid-template-rows:auto auto auto;padding:12px;gap:3px 9px}
+ .market-card-top .market-symbol{width:32px;height:32px;grid-column:1;grid-row:1/4}
+ .market-category{grid-column:2;grid-row:1}
+ .watch-button{grid-column:3;grid-row:1}
+ .market-card-main{grid-column:2/4;grid-row:2;grid-template-columns:minmax(0,1fr) 112px;gap:4px 8px}
+ .market-card h3{grid-column:1;grid-row:1/3;font-size:14px;line-height:1.7;padding-right:2px}
+ .probability-line{grid-column:2;grid-row:1;display:block;text-align:right;font-size:10px}
+ .probability-line b{display:block;font-size:14px;margin:2px 0 0}
+ .probability-track{grid-column:2;grid-row:2}
+ .market-card-footer{grid-column:2/4;grid-row:3;font-size:10px}
+ html[lang="my"] .market-card h3{font-size:14px;line-height:1.9}
+ html[lang="my"] .market-card-footer{font-size:10px}
+ .market-info{grid-template-columns:1fr}
+}
