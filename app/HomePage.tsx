@@ -245,7 +245,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
           <h3>{language === "my" ? m.questionMm : m.question}</h3>
           <div className="featured-probability"><strong>{fmt(m.yes,language)}%</strong><span>{language === "my" ? "မှန်နိုင်ခြေ" : "YES probability"}</span></div>
           <div className="featured-track"><span style={{width:m.yes+"%"}} /></div>
-          <div className="featured-card-bottom"><span>{language === "my" ? "မှန်" : "Yes"} {m.yes}¢</span><span>{language === "my" ? "မှား" : "No"} {100-m.yes}¢</span><span>{t.vol} ₭{(m.volume/1000000).toFixed(1)}M</span></div>
+          <div className="featured-card-bottom"><span>{language === "my" ? "မှန်" : "Yes"} {m.yes} {language === "my" ? "ပြား" : "P"}</span><span>{language === "my" ? "မှား" : "No"} {100-m.yes} {language === "my" ? "ပြား" : "P"}</span><span>{t.vol} ₭{(m.volume/1000000).toFixed(1)}M</span></div>
         </button>)}
       </div>
     </section>
@@ -253,7 +253,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
     <section className="hot-topics" aria-label={language === "my" ? "ရေပန်းစားသော အကြောင်းအရာများ" : "Hot topics"}>
       <div className="hot-topics-title"><span className="hot-pulse" /> <strong>{language === "my" ? "ရေပန်းစားသော အကြောင်းအရာများ" : "Hot topics"}</strong><span>{language === "my" ? "လေ့လာရန်" : "Explore topics"}</span></div>
       <div className="hot-topic-list">
-        {(["Myanmar","Economy","Crypto","World","Sports","Technology"] as Exclude<Category,"All">[]).map((c,i)=><button type="button" key={c} onClick={()=>{setCategory(c);document.getElementById("markets")?.scrollIntoView({behavior:"smooth"});}}><b>{i+1}</b><span>{categoryLabel(c,language)}</span><small>{language === "my" ? "ဈေးကွက်များ" : "markets"}</small></button>)}
+        {(["Myanmar","Economy","Crypto","World","Sports","Technology"] as Exclude<Category,"All">[]).map((c,i)=><button type="button" key={c} onClick={()=>{setView("explore");setCategory(c);document.getElementById("markets")?.scrollIntoView({behavior:"smooth"});}}><b>{i+1}</b><span>{categoryLabel(c,language)}</span><small>{language === "my" ? "ဈေးကွက်များ" : "markets"}</small></button>)}
       </div>
     </section>
 
