@@ -97,7 +97,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
       }
     } catch { /* Ignore invalid local demo data and keep safe defaults. */ }
     setHydrated(true);
-  }, []);
+  }, [initialLocale]);
 
   useEffect(() => {
     if (hydrated) window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ watchlist, positions, activity, balance, language }));
