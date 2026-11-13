@@ -295,6 +295,12 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
         <div className="category-row" role="group" aria-label={language === "my" ? "ဈေးကွက်အမျိုးအစားများ" : "Market categories"}>
           {(["All", "Myanmar", "Economy", "Crypto", "World", "Sports", "Technology"] as Category[]).map(c => <button key={c} aria-pressed={category === c} className={category === c ? "category-chip selected" : "category-chip"} onClick={() => setCategory(c)}>{c === "All" ? "✳ " : ""}{categoryLabel(c, language)}</button>)}
         </div>
+        <div className="market-results-meta" role="status" aria-live="polite">
+          <span className="results-pulse" />
+          <strong>{fmt(visible.length, language)}</strong>
+          <span>{language === "my" ? "နမူနာဈေးကွက်များ ပြသနေသည်" : "illustrative markets shown"}</span>
+          <span className="results-note">{language === "my" ? "တိုက်ရိုက်ဒေတာ မဟုတ်ပါ" : "Sample data · not live market activity"}</span>
+        </div>
         <div className="market-layout">
           <div className="market-grid">
             {visible.map(m => <article key={m.id} className={selected.id === m.id ? "market-card chosen" : "market-card"}>
