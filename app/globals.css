@@ -11,3 +11,92 @@ html[lang="my"] body{font-family:"Noto Sans Myanmar","DM Sans",sans-serif;line-h
 html[lang="my"] .hero h1,html[lang="my"] .section-heading h2,html[lang="my"] .how-section h2,html[lang="my"] .panel-heading h3,html[lang="my"] .confirm-modal h2{font-family:"Noto Sans Myanmar","DM Sans",sans-serif;letter-spacing:0;line-height:1.45}
 html[lang="my"] .brand-word,html[lang="my"] .main-nav button,html[lang="my"] .language-switch,html[lang="my"] .category-chip,html[lang="my"] .primary-cta,html[lang="my"] .text-cta{font-family:"Noto Sans Myanmar","DM Sans",sans-serif;letter-spacing:0}
 html[lang="my"] .market-card h3,html[lang="my"] .selected-market p,html[lang="my"] .position-market strong,html[lang="my"] .activity-row strong{line-height:1.8}
+
+
+/* Readability pass: Burmese UI uses a larger, more comfortable type scale. */
+html[lang="my"] body{font-size:16px;line-height:1.85}
+html[lang="my"] .demo-ribbon{font-size:11px;letter-spacing:0;line-height:1.8;padding:9px 14px}
+html[lang="my"] .brand-word{font-size:23px;line-height:1.25}
+html[lang="my"] .brand-word small{font-size:10px;letter-spacing:.3px;line-height:1.5}
+html[lang="my"] .main-nav button,html[lang="my"] .language-switch{font-size:14px;line-height:1.8}
+html[lang="my"] .nav-count{font-size:11px}
+html[lang="my"] .balance-pill{padding:9px 12px}
+html[lang="my"] .balance-pill span{font-size:10px;letter-spacing:0;line-height:1.7}
+html[lang="my"] .balance-pill strong{font-size:15px;line-height:1.8}
+html[lang="my"] .eyebrow{font-size:12px;letter-spacing:0;line-height:1.9}
+html[lang="my"] .hero h1{font-size:clamp(42px,5vw,66px);line-height:1.55;letter-spacing:0;margin:20px 0}
+html[lang="my"] .hero-copy>p{font-size:16px;line-height:2.05}
+html[lang="my"] .primary-cta,html[lang="my"] .text-cta{font-size:14px;line-height:1.9;padding-top:12px;padding-bottom:12px}
+html[lang="my"] .hero-note{font-size:13px;line-height:1.9}
+html[lang="my"] .float-label,html[lang="my"] .stat-label,html[lang="my"] .panel-kicker{font-size:11px;letter-spacing:0;line-height:1.8}
+html[lang="my"] .floating-card strong{font-size:32px}
+html[lang="my"] .floating-card small{font-size:12px;line-height:1.8}
+html[lang="my"] .signal-row strong{font-size:17px}
+html[lang="my"] .stats-strip strong{font-size:25px}
+html[lang="my"] .stats-strip small,html[lang="my"] .stats-aside{font-size:12px;line-height:1.9}
+html[lang="my"] .section-heading h2,html[lang="my"] .how-section h2{font-size:clamp(29px,3.2vw,39px);line-height:1.7}
+html[lang="my"] .section-heading p{font-size:14px;line-height:2}
+html[lang="my"] .search-box input,html[lang="my"] .sort-button{font-size:13px}
+html[lang="my"] .category-chip{font-size:13px;padding:10px 13px}
+html[lang="my"] .market-card{padding:18px}
+html[lang="my"] .market-category{font-size:12px}
+html[lang="my"] .market-card h3{font-size:16px;line-height:2;min-height:4.2em}
+html[lang="my"] .probability-line{font-size:12px;line-height:1.9}
+html[lang="my"] .probability-line b{font-size:15px}
+html[lang="my"] .market-card-footer{font-size:11px;line-height:1.9;gap:8px}
+html[lang="my"] .trade-panel{padding:21px}
+html[lang="my"] .panel-heading h3{font-size:20px;line-height:1.8}
+html[lang="my"] .demo-tag{font-size:10px;letter-spacing:0;line-height:1.8}
+html[lang="my"] .selected-market p{font-size:14px;line-height:2}
+html[lang="my"] .outcome-switch button{font-size:13px;line-height:1.9}
+html[lang="my"] .outcome-switch button b{font-size:14px}
+html[lang="my"] .price-context{font-size:13px;line-height:1.9}
+html[lang="my"] .price-context strong{font-size:15px}
+html[lang="my"] .quantity-label{font-size:12px;letter-spacing:0;line-height:1.9}
+html[lang="my"] .quantity-input{height:44px}
+html[lang="my"] .quick-quantities button{font-size:12px;padding:8px 5px}
+html[lang="my"] .trade-summary>div{font-size:13px;line-height:1.9}
+html[lang="my"] .trade-summary strong{font-size:14px}
+html[lang="my"] .trade-summary .summary-profit strong{font-size:16px}
+html[lang="my"] .trade-summary small,html[lang="my"] .panel-disclaimer{font-size:11px;line-height:1.9}
+html[lang="my"] .preview-button{font-size:14px;line-height:1.9;padding:14px}
+html[lang="my"] .market-rules-link{font-size:13px;line-height:1.9}
+html[lang="my"] .market-info>div{padding:21px}
+html[lang="my"] .market-info h3{font-size:17px;line-height:2}
+html[lang="my"] .market-info p{font-size:14px;line-height:2}
+html[lang="my"] .rules-warning{font-size:12px;line-height:2}
+html[lang="my"] .portfolio-summary span,html[lang="my"] .position-row>div>span,html[lang="my"] .activity-row>div>span{font-size:11px;letter-spacing:0;line-height:1.8}
+html[lang="my"] .portfolio-summary strong{font-size:22px}
+html[lang="my"] .table-heading h3{font-size:20px;line-height:1.8}
+html[lang="my"] .table-heading p{font-size:13px;line-height:1.9}
+html[lang="my"] .reset-button,html[lang="my"] .text-action{font-size:12px;line-height:1.8}
+html[lang="my"] .position-market strong,html[lang="my"] .activity-row strong{font-size:13px;line-height:2}
+html[lang="my"] .position-market small,html[lang="my"] .activity-row small{font-size:11px;line-height:1.9}
+html[lang="my"] .position-row>div>strong,html[lang="my"] .activity-row>div>strong{font-size:14px}
+html[lang="my"] .activity-row time{font-size:11px}
+html[lang="my"] .how-steps strong{font-size:14px;line-height:1.9}
+html[lang="my"] .how-steps p{font-size:13px;line-height:2}
+html[lang="my"] .how-steps span{font-size:11px}
+html[lang="my"] .footer>p{font-size:13px}
+html[lang="my"] .footer button,html[lang="my"] .footer>div span{font-size:12px}
+html[lang="my"] .confirm-modal h2{font-size:24px;line-height:1.7}
+html[lang="my"] .confirm-modal>p{font-size:14px;line-height:2}
+html[lang="my"] .modal-breakdown>div,html[lang="my"] .modal-warning,html[lang="my"] .cancel-button{font-size:13px;line-height:2}
+html[lang="my"] .empty-state strong{font-size:17px;line-height:1.9}
+html[lang="my"] .empty-state p{font-size:14px;line-height:2}
+@media(max-width:560px){
+ html[lang="my"] .demo-ribbon{font-size:10px}
+ html[lang="my"] .brand-word{font-size:20px}
+ html[lang="my"] .brand-word small{font-size:9px}
+ html[lang="my"] .main-nav button{font-size:12px}
+ html[lang="my"] .language-switch{font-size:12px}
+ html[lang="my"] .balance-pill span{font-size:9px}
+ html[lang="my"] .balance-pill strong{font-size:13px}
+ html[lang="my"] .hero h1{font-size:clamp(37px,10vw,48px);line-height:1.65}
+ html[lang="my"] .hero-copy>p{font-size:15px}
+ html[lang="my"] .section-heading h2,html[lang="my"] .how-section h2{font-size:29px}
+ html[lang="my"] .market-card h3{font-size:16px;min-height:0}
+ html[lang="my"] .market-card-footer{font-size:10px}
+ html[lang="my"] .portfolio-summary strong{font-size:18px}
+ html[lang="my"] .footer>div{flex-wrap:wrap}
+}
