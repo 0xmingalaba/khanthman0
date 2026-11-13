@@ -61,7 +61,7 @@ const copy = {
 
 const STORAGE_KEY = "mingala-demo-v3";
 const MY_DIGITS: Record<string, string> = { "0":"၀", "1":"၁", "2":"၂", "3":"၃", "4":"၄", "5":"၅", "6":"၆", "7":"၇", "8":"၈", "9":"၉" };
-const groupedInteger = (value: number) => Math.trunc(value).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",");
+const groupedInteger = (value: number) => Math.trunc(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 const localizeDigits = (value: string, locale: Locale) => locale === "my" ? value.replace(/[0-9]/g, digit => MY_DIGITS[digit]) : value;
 const fmt = (n: number, locale: Locale) => localizeDigits(groupedInteger(n), locale);
 const money = (pyas: number, locale: Locale) => {
