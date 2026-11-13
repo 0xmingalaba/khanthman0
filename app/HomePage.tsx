@@ -156,7 +156,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
         e.preventDefault();
         document.getElementById("market-search")?.focus();
       }
-      if (e.key === "Escape") setConfirming(false);
+      if (e.key === "Escape") { setConfirming(false); setPredictOpen(false); setMenuOpen(false); }
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
