@@ -44,17 +44,17 @@ const copy = {
     ribbon: "သရုပ်ပြမုဒ် / စက်တွင်းသရုပ်ပြမှုသာ · တကယ့်ငွေကြေး မပါဝင် · နမူနာဒေတာ",
     explore: "ဈေးကွက်များ", watchlist: "စောင့်ကြည့်စာရင်း", portfolio: "အစုစု", activity: "လုပ်ဆောင်ချက်များ", balance: "သရုပ်ပြ လက်ကျန်ငွေ",
     eyebrow: "အနာဂတ်အတွက် ခန့်မှန်းချက်များ", heroA: "သင့်အမြင်ကို", heroB: "တန်ဖိုးရှိစေပါ။", intro: "မနက်ဖြန်ကို ပုံဖော်မည့် မေးခွန်းများကို လေ့လာပါ။ ဖြစ်နိုင်ခြေများကို နှိုင်းယှဉ်ပြီး သတင်းအသစ်များကို လိုက်လံစောင့်ကြည့်ကာ အတုငွေကြေးဖြင့် ပွင့်လင်းမြင်သာစွာ လေ့ကျင့်ခန့်မှန်းနိုင်ပါသည်။",
-    exploreMarkets: "ဈေးကွက်များကို လေ့လာရန်", how: "အသုံးပြုပုံ", note: "မြန်မာနိုင်ငံနှင့် ကမ္ဘာတစ်ဝန်းရှိ စူးစမ်းလိုသူများအတွက်။", community: "အသိုင်းအဝိုင်း၏ ခန့်မှန်းချက်", signal: "နမူနာ YES ခန့်မှန်းချက်", workspace: "သင့်လုပ်ဆောင်ရန်နေရာ", learn: "ခန့်မှန်းခြင်းဖြင့် လေ့လာပါ", caption: "ခန့်မှန်းချက်တိုင်းသည် မေးခွန်းတစ်ခုမှ စတင်သည်။",
+    exploreMarkets: "ဈေးကွက်များကို လေ့လာရန်", how: "အသုံးပြုပုံ", note: "မြန်မာနိုင်ငံနှင့် ကမ္ဘာတစ်ဝန်းရှိ စူးစမ်းလိုသူများအတွက်။", community: "အသိုင်းအဝိုင်း၏ ခန့်မှန်းချက်", signal: "နမူနာ မှန် ခန့်မှန်းချက်", workspace: "သင့်လုပ်ဆောင်ရန်နေရာ", learn: "ခန့်မှန်းခြင်းဖြင့် လေ့လာပါ", caption: "ခန့်မှန်းချက်တိုင်းသည် မေးခွန်းတစ်ခုမှ စတင်သည်။",
     sampleMarkets: "နမူနာဈေးကွက်များ", illustrative: "နမူနာမေးခွန်းများ", yourWatchlist: "သင့်စောင့်ကြည့်စာရင်း", saved: "ဤစက်တွင် သိမ်းဆည်းထားသည်", openPositions: "ဖွင့်ထားသော သရုပ်ပြအစုများ", localOnly: "စက်တွင်း သရုပ်ပြမှုသာ", disconnected: "တိုက်ရိုက်ဈေးကွက်နှင့် ချိတ်ဆက်ထားခြင်း မရှိပါ။",
     marketplace: "ဈေးကွက်", questions: "စိတ်ဝင်စားဖွယ် မေးခွန်းများ", watchlistDesc: "စိတ်ဝင်စားသော မေးခွန်းများကို စောင့်ကြည့်ပါ။", portfolioDesc: "သရုပ်ပြအစုများနှင့် လက်ကျန်တန်ဖိုးကို ကြည့်ရှုပါ။", activityDesc: "ဤစက်တွင် မှတ်တမ်းတင်ထားသော သရုပ်ပြလုပ်ဆောင်ချက်များ။", exploreDesc: "ဈေးကွက်များကို ရှာဖွေပြီး ရလဒ်များနှင့် အများ၏ခန့်မှန်းချက်ကို နှိုင်းယှဉ်ပါ။",
-    search: "ဈေးကွက်များကို ရှာဖွေရန်...", trending: "ရေပန်းအစားဆုံး", volume: "ကုန်သွယ်မှုပမာဏ အများဆုံး", highestYes: "YES ဖြစ်နိုင်ခြေ အမြင့်ဆုံး", closing: "မကြာမီ ပိတ်မည့်ဈေးကွက်", all: "အားလုံး", categories: {Myanmar:"မြန်မာ",Economy:"စီးပွားရေး",Crypto:"ခရစ်ပ်တို",World:"ကမ္ဘာ့ရေးရာ",Sports:"အားကစား",Technology:"နည်းပညာ"},
+    search: "ဈေးကွက်များကို ရှာဖွေရန်...", trending: "ရေပန်းအစားဆုံး", volume: "ကုန်သွယ်မှုပမာဏ အများဆုံး", highestYes: "မှန် ဖြစ်နိုင်ခြေ အမြင့်ဆုံး", closing: "မကြာမီ ပိတ်မည့်ဈေးကွက်", all: "အားလုံး", categories: {Myanmar:"မြန်မာ",Economy:"စီးပွားရေး",Crypto:"ခရစ်ပ်တို",World:"ကမ္ဘာ့ရေးရာ",Sports:"အားကစား",Technology:"နည်းပညာ"},
     noWatch: "စောင့်ကြည့်စာရင်း မရှိသေးပါ", noMatch: "ကိုက်ညီသော ဈေးကွက် မတွေ့ပါ", saveWatch: "ကြယ်ပုံကို နှိပ်၍ ဈေးကွက်ကို သိမ်းဆည်းပါ။", trySearch: "အခြားစကားလုံး သို့မဟုတ် အမျိုးအစားဖြင့် ရှာဖွေပါ။",
     snapshot: "ဈေးကွက်အကျဉ်းချုပ်", simulator: "အရောင်းအဝယ် သရုပ်ပြစနစ်", localDemo: "စက်တွင်း သရုပ်ပြမှု", price: "နမူနာဈေးနှုန်း", shares: "ဝယ်ယူမည့် ရှယ်ယာအရေအတွက်", cost: "ခန့်မှန်းကုန်ကျငွေ", payout: "ရနိုင်သည့် ပေးချေငွေ", profit: "ဖြစ်နိုင်သည့် အမြတ်", payoutNote: "အနိုင်ရသော ရှယ်ယာတစ်ခုလျှင် ၁၀၀ ပြား ရရှိမည်။ ရိုးရှင်းသော သရုပ်ပြတွက်ချက်မှုသာ ဖြစ်သည်။",
     insufficient: "သရုပ်ပြလက်ကျန်ငွေ မလုံလောက်ပါ", review: "သရုပ်ပြအော်ဒါကို စစ်ဆေးရန်", disclaimer: "တကယ့်အော်ဒါစာရင်း၊ အကောင့် သို့မဟုတ် ဆာဗာနှင့် ချိတ်ဆက်ထားခြင်း မရှိပါ။ ဈေးနှုန်းနှင့် ပမာဏများသည် နမူနာဒေတာများသာ ဖြစ်သည်။", readInfo: "ဈေးကွက်အချက်အလက်ကို ဖတ်ရန်",
     about: "ဤမေးခွန်းအကြောင်း", resolution: "ရလဒ်ဆုံးဖြတ်ပုံ နမူနာ", ruleWarning: "နမူနာသာ ဖြစ်သည်။ တကယ့်ဈေးကွက် မဖွင့်မီ စည်းမျဉ်းများနှင့် တရားဝင်ရင်းမြစ်များကို အတည်ပြုရမည်။",
     available: "အသုံးပြုနိုင်သော သရုပ်ပြလက်ကျန်", markValue: "အစုများ၏ လက်ရှိတန်ဖိုး", equity: "သရုပ်ပြ စုစုပေါင်းတန်ဖိုး", positions: "ဖွင့်ထားသော အစုများ", open: "ဖွင့်ထားသော အစုများ", marked: "ဤသရုပ်ပြတွင် ပြသထားသော နမူနာဖြစ်နိုင်ခြေများဖြင့် တန်ဖိုးသတ်မှတ်ထားသည်။", reset: "သရုပ်ပြအကောင့်ကို ပြန်စရန်", avg: "ပျမ်းမျှဈေးနှုန်း", mark: "လက်ရှိဈေးနှုန်း", pnl: "မပိတ်သိမ်းရသေးသော အမြတ်/အရှုံး", noPositions: "သရုပ်ပြအစု မရှိသေးပါ", startPosition: "ဈေးကွက်တစ်ခုကို ရွေးချယ်ပြီး သရုပ်ပြအော်ဒါကို အတည်ပြုကာ ပထမဆုံးအစုကို ဖန်တီးပါ။", stored: "လက်ကျန်ငွေနှင့် အစုများကို ဤစက်၏ browser တွင်သာ သိမ်းဆည်းထားသည်။ တကယ့်ငွေကြေး သို့မဟုတ် ဆာဗာအကောင့် မဟုတ်ပါ။",
     recent: "နောက်ဆုံး သရုပ်ပြလုပ်ဆောင်ချက်များ", history: "သင့်စက်တွင်း သရုပ်ပြအော်ဒါမှတ်တမ်း။", noActivity: "လုပ်ဆောင်ချက် မရှိသေးပါ", activityEmpty: "သရုပ်ပြအော်ဒါများကို ဤနေရာတွင် ပြသပါမည်။",
-    simple: "ရိုးရှင်းလွယ်ကူစွာ", think: "ရှင်းလင်းစွာ စဉ်းစားပါ။", see: "ဖြစ်နိုင်ခြေများကို မြင်ပါ။", step1: "မေးခွန်းတစ်ခု ရှာဖွေပါ", step1d: "စိတ်ဝင်စားသော အကြောင်းအရာများနှင့် ဖြစ်ရပ်များကို လေ့လာပါ။", step2: "သင့်အမြင်ကို ဖော်ထုတ်ပါ", step2d: "နမူနာဈေးနှုန်းများဖြင့် YES နှင့် NO ဖြစ်နိုင်ခြေကို နှိုင်းယှဉ်ပါ။", step3: "ဖြစ်ပေါ်လာသည့်အတိုင်း လေ့လာပါ", step3d: "သရုပ်ပြအစုများကို စောင့်ကြည့်ပြီး သင့်ခန့်မှန်းချက်များကို ပြန်လည်သုံးသပ်ပါ။",
+    simple: "ရိုးရှင်းလွယ်ကူစွာ", think: "ရှင်းလင်းစွာ စဉ်းစားပါ။", see: "ဖြစ်နိုင်ခြေများကို မြင်ပါ။", step1: "မေးခွန်းတစ်ခု ရှာဖွေပါ", step1d: "စိတ်ဝင်စားသော အကြောင်းအရာများနှင့် ဖြစ်ရပ်များကို လေ့လာပါ။", step2: "သင့်အမြင်ကို ဖော်ထုတ်ပါ", step2d: "နမူနာဈေးနှုန်းများဖြင့် မှန်နှင့် မှား ဖြစ်နိုင်ခြေကို နှိုင်းယှဉ်ပါ။", step3: "ဖြစ်ပေါ်လာသည့်အတိုင်း လေ့လာပါ", step3d: "သရုပ်ပြအစုများကို စောင့်ကြည့်ပြီး သင့်ခန့်မှန်းချက်များကို ပြန်လည်သုံးသပ်ပါ။",
     footer: "အနာဂတ်အတွက် လွတ်လပ်စွာ တွေးခေါ်ခြင်း။", reviewTitle: "သင့်အစုကို စစ်ဆေးပါ", outcome: "ရလဒ်", sharesLabel: "ရှယ်ယာအရေအတွက်", samplePrice: "နမူနာဈေးနှုန်း", demoCost: "သရုပ်ပြကုန်ကျငွေ", maxPayout: "မှန်ကန်ပါက အများဆုံးရရှိမည့်ငွေ", beforeFees: "အခကြေးငွေမတိုင်မီ ဖြစ်နိုင်သည့်အမြတ်", modalWarning: "ဤလုပ်ဆောင်ချက်သည် သင့်စက်တွင်း သရုပ်ပြလက်ကျန်နှင့် အစုစုကိုသာ ပြောင်းလဲမည်ဖြစ်သည်။ တကယ့်အရောင်းအဝယ် မပြုလုပ်သလို ဆာဗာသို့လည်း ချိတ်ဆက်မည်မဟုတ်ပါ။", confirm: "သရုပ်ပြအစုကို အတည်ပြုရန်", back: "ပြန်သွားရန်", resetConfirm: "သရုပ်ပြလက်ကျန်ငွေ၊ အစုများ၊ လုပ်ဆောင်ချက်များနှင့် စောင့်ကြည့်စာရင်းကို ပြန်စမလား။", resetDone: "သရုပ်ပြအကောင့်ကို ပြန်လည်စတင်ပြီးပါပြီ။", added: "သရုပ်ပြအစုကို ထည့်သွင်းပြီးပါပြီ။ ဆာဗာအော်ဒါ မဖန်တီးခဲ့ပါ။", remove: "စောင့်ကြည့်စာရင်းမှ ဖယ်ရှားရန်", add: "စောင့်ကြည့်စာရင်းသို့ ထည့်ရန်", close: "ပိတ်မည့်ရက်", vol: "ပမာဏ", marketRules: "တကယ့်ဈေးကွက် မဖွင့်မီ စည်းမျဉ်းများနှင့် တရားဝင်ရင်းမြစ်များကို အတည်ပြုရမည်။"
   }
 } as const;
@@ -65,6 +65,7 @@ const money = (pyas: number, locale: Locale) => locale === "my"
   ? new Intl.NumberFormat("my-MM", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(pyas / 100) + " ကျပ်"
   : "₭ " + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(pyas / 100);
 const categoryLabel = (c: Category, locale: Locale) => c === "All" ? copy[locale].all : copy[locale].categories[c];
+const outcomeLabel = (side: "YES" | "NO", locale: Locale) => locale === "my" ? (side === "YES" ? "မှန်" : "မှား") : side;
 const dateLabel = (date: string, locale: Locale) => locale === "my" ? ({ "Dec 31": "ဒီဇင်ဘာ ၃၁", "Dec 10": "ဒီဇင်ဘာ ၁၀", "May 24": "မေလ ၂၄", "Nov 30": "နိုဝင်ဘာ ၃၀" } as Record<string, string>)[date] ?? date : date;
 
 export default function HomePage({ initialLocale }: { initialLocale?: Locale } = {}) {
@@ -234,7 +235,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
               <div className="market-card-top"><span className={"market-symbol " + m.tone}>{m.symbol}</span><span className="market-category">{categoryLabel(m.category, language)}</span><button className={watchlist.includes(m.id) ? "watch-button watching" : "watch-button"} onClick={() => toggleWatch(m.id)} aria-label={watchlist.includes(m.id) ? t.remove : t.add}>{watchlist.includes(m.id) ? "★" : "☆"}</button></div>
               <button className="market-card-main" onClick={() => choose(m.id)}>
                 <h3>{language === "my" ? m.questionMm : m.question}</h3>
-                <div className="probability-line"><span>YES <b>{m.yes} {language === "my" ? "ပြား" : "Pyas"}</b></span><span className={m.change >= 0 ? "positive" : "negative"}>{m.change >= 0 ? "↗" : "↘"} {Math.abs(m.change).toFixed(1)}%</span></div>
+                <div className="probability-line"><span>{outcomeLabel("YES", language)} <b>{m.yes} {language === "my" ? "ပြား" : "Pyas"}</b></span><span className={m.change >= 0 ? "positive" : "negative"}>{m.change >= 0 ? "↗" : "↘"} {Math.abs(m.change).toFixed(1)}%</span></div>
                 <div className="probability-track"><span style={{ width: m.yes + "%" }} /></div>
               </button>
               <div className="market-card-footer"><span>◷ {t.close} {dateLabel(m.closes, language)}</span><span>{t.vol} ₭{(m.volume / 1000000).toFixed(1)}M</span></div>
@@ -246,8 +247,8 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
             <div className="panel-heading"><div><span className="panel-kicker">{t.snapshot}</span><h3>{t.simulator}</h3></div><span className="demo-tag">{t.localDemo}</span></div>
             <div className="selected-market"><span className={"market-symbol small " + selected.tone}>{selected.symbol}</span><p>{language === "my" ? selected.questionMm : selected.question}</p></div>
             <div className="outcome-switch">
-              <button className={side === "YES" ? "outcome-yes active" : "outcome-yes"} onClick={() => setSide("YES")}>YES <b>{selected.yes} {language === "my" ? "ပြား" : "Pyas"}</b></button>
-              <button className={side === "NO" ? "outcome-no active" : "outcome-no"} onClick={() => setSide("NO")}>NO <b>{100 - selected.yes} {language === "my" ? "ပြား" : "Pyas"}</b></button>
+              <button className={side === "YES" ? "outcome-yes active" : "outcome-yes"} onClick={() => setSide("YES")}>{outcomeLabel("YES", language)} <b>{selected.yes} {language === "my" ? "ပြား" : "Pyas"}</b></button>
+              <button className={side === "NO" ? "outcome-no active" : "outcome-no"} onClick={() => setSide("NO")}>{outcomeLabel("NO", language)} <b>{100 - selected.yes} {language === "my" ? "ပြား" : "Pyas"}</b></button>
             </div>
             <div className="price-context"><span>{t.price}</span><strong>{price} {language === "my" ? "ပြား" : "Pyas"}</strong></div>
             <label className="quantity-label" htmlFor="quantity">{t.shares}</label>
@@ -283,7 +284,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
           const m = markets.find(x => x.id === p.marketId)!;
           const mark = p.side === "YES" ? m.yes : 100 - m.yes;
           return <div className="position-row" key={p.marketId + "-" + p.side + "-" + i}>
-            <div className="position-market"><span className={"market-symbol small " + m.tone}>{m.symbol}</span><div><strong>{language === "my" ? m.questionMm : m.question}</strong><small>{p.side} · {fmt(p.shares, language)} {t.sharesLabel}</small></div></div>
+            <div className="position-market"><span className={"market-symbol small " + m.tone}>{m.symbol}</span><div><strong>{language === "my" ? m.questionMm : m.question}</strong><small>{outcomeLabel(p.side, language)} · {fmt(p.shares, language)} {t.sharesLabel}</small></div></div>
             <div><span>{t.avg}</span><strong>{p.averagePrice} {language === "my" ? "ပြား" : "Pyas"}</strong></div>
             <div><span>{t.mark}</span><strong>{mark} {language === "my" ? "ပြား" : "Pyas"}</strong></div>
             <div><span>{t.pnl}</span><strong className={mark >= p.averagePrice ? "positive" : "negative"}>{money((mark - p.averagePrice) * p.shares, language)}</strong></div>
@@ -297,7 +298,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
         <div className="table-heading"><div><h3>{t.recent}</h3><p>{t.history}</p></div><button className="reset-button" onClick={reset}>{t.reset}</button></div>
         {activity.length ? <div className="activity-list">{activity.map(a => {
           const m = markets.find(x => x.id === a.marketId)!;
-          return <div className="activity-row" key={a.id}><div><strong>{a.side} · {fmt(a.shares, language)} {t.sharesLabel}</strong><small>{language === "my" ? m.questionMm : m.question}</small></div><div><span>{t.samplePrice}</span><strong>{a.price} {language === "my" ? "ပြား" : "Pyas"}</strong></div><div><span>{t.cost}</span><strong>{money(a.cost, language)}</strong></div><time>{new Date(a.at).toLocaleString(language === "my" ? "my-MM" : "en-US", { timeZone: "Asia/Yangon" })}</time></div>;
+          return <div className="activity-row" key={a.id}><div><strong>{outcomeLabel(a.side, language)} · {fmt(a.shares, language)} {t.sharesLabel}</strong><small>{language === "my" ? m.questionMm : m.question}</small></div><div><span>{t.samplePrice}</span><strong>{a.price} {language === "my" ? "ပြား" : "Pyas"}</strong></div><div><span>{t.cost}</span><strong>{money(a.cost, language)}</strong></div><time>{new Date(a.at).toLocaleString(language === "my" ? "my-MM" : "en-US", { timeZone: "Asia/Yangon" })}</time></div>;
         })}</div> : <div className="empty-state"><strong>{t.noActivity}</strong><p>{t.activityEmpty}</p><button className="primary-cta" onClick={() => setView("explore")}>{t.exploreMarkets} →</button></div>}
       </section>}
     </section>
@@ -320,10 +321,10 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
     {confirming && <div className="modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setConfirming(false); }}>
       <section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
         <button className="modal-close" onClick={() => setConfirming(false)} aria-label={language === "my" ? "ပိတ်ရန်" : "Close"}>×</button>
-        <span className="panel-kicker">{t.review}</span><h2 id="confirm-title">{t.reviewTitle} · {side}</h2>
+        <span className="panel-kicker">{t.review}</span><h2 id="confirm-title">{t.reviewTitle} · {outcomeLabel(side, language)}</h2>
         <p>{language === "my" ? selected.questionMm : selected.question}</p>
         <div className="modal-breakdown">
-          <div><span>{t.outcome}</span><strong>{side}</strong></div>
+          <div><span>{t.outcome}</span><strong>{outcomeLabel(side, language)}</strong></div>
           <div><span>{t.sharesLabel}</span><strong>{fmt(qty, language)}</strong></div>
           <div><span>{t.samplePrice}</span><strong>{price} {language === "my" ? "ပြား" : "Pyas"}</strong></div>
           <div><span>{t.demoCost}</span><strong>{money(cost, language)}</strong></div>
