@@ -283,3 +283,22 @@ html[lang="my"] .preview-button{font-size:15px;line-height:1.9}
  html[lang="my"] .market-card-footer{font-size:10px}
  .market-info{grid-template-columns:1fr}
 }
+
+
+/* Accessible interaction states for keyboard and touch users. */
+.market-card-main{cursor:pointer;border-radius:7px;outline-offset:4px}
+.market-card-main:focus-visible,.watch-button:focus-visible,.category-chip:focus-visible,
+.main-nav button:focus-visible,.language-switch:focus-visible,.preview-button:focus-visible,
+.outcome-switch button:focus-visible,.sort-button:focus-visible,.search-box:focus-within{
+  outline:3px solid #7bc6ad;outline-offset:3px
+}
+.market-card,.category-chip,.watch-button,.preview-button,.outcome-switch button{
+  transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease
+}
+.market-card:hover{transform:translateY(-1px)}
+.watch-button[aria-pressed="true"]{color:#b7831d}
+.category-chip[aria-pressed="true"]{box-shadow:inset 0 0 0 1px #b5dfcc}
+button:disabled{cursor:not-allowed;opacity:.55}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
