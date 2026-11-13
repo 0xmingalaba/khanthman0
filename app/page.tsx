@@ -65,7 +65,7 @@ const money = (pyas: number, locale: Locale) => locale === "my"
   ? new Intl.NumberFormat("my-MM", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(pyas / 100) + " ကျပ်"
   : "₭ " + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(pyas / 100);
 const categoryLabel = (c: Category, locale: Locale) => c === "All" ? copy[locale].all : copy[locale].categories[c];
-const dateLabel = (date: string, locale: Locale) => date;
+const dateLabel = (date: string, locale: Locale) => locale === "my" ? ({ "Dec 31": "ဒီဇင်ဘာ ၃၁", "Dec 10": "ဒီဇင်ဘာ ၁၀", "May 24": "မေလ ၂၄", "Nov 30": "နိုဝင်ဘာ ၃၀" } as Record<string, string>)[date] ?? date : date;
 
 export default function HomePage() {
   const [language, setLanguage] = useState<Locale>("en");
@@ -218,14 +218,14 @@ export default function HomePage() {
         </div>
         {(view === "explore" || view === "watchlist") && <div className="market-tools">
           <label className="search-box"><span>⌕</span><input id="market-search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t.search} aria-label={t.search} /><kbd>⌘ K</kbd></label>
-          <select className="sort-button" value={sort} onChange={e => setSort(e.target.value)} aria-label="Sort markets">
+          <select className="sort-button" value={sort} onChange={e => setSort(e.target.value)} aria-label={language === "my" ? "ဈေးကွက်စီရန်" : "Sort markets"}>
             <option value="trending">{t.trending}</option><option value="volume">{t.volume}</option><option value="probability">{t.highestYes}</option><option value="closing">{t.closing}</option>
           </select>
         </div>}
       </div>
 
       {(view === "explore" || view === "watchlist") && <>
-        <div className="category-row" role="tablist" aria-label="Market categories">
+        <div className="category-row" role="tablist" aria-label={language === "my" ? "ဈေးကွက်အမျိုးအစားများ" : "Market categories"}>
           {(["All", "Myanmar", "Economy", "Crypto", "World", "Sports", "Technology"] as Category[]).map(c => <button key={c} role="tab" aria-selected={category === c} className={category === c ? "category-chip selected" : "category-chip"} onClick={() => setCategory(c)}>{c === "All" ? "✳ " : ""}{categoryLabel(c, language)}</button>)}
         </div>
         <div className="market-layout">
@@ -251,7 +251,7 @@ export default function HomePage() {
             </div>
             <div className="price-context"><span>{t.price}</span><strong>{price} {language === "my" ? "ပြား" : "Pyas"}</strong></div>
             <label className="quantity-label" htmlFor="quantity">{t.shares}</label>
-            <div className="quantity-input"><button onClick={() => setQuantity(String(Math.max(1, (Number(quantity) || 1) - 10)))} aria-label="Decrease quantity">−</button><input id="quantity" type="number" min="1" max="1000000" step="1" value={quantity} onChange={e => setQuantity(e.target.value)} /><button onClick={() => setQuantity(String(Math.min(1000000, (Number(quantity) || 0) + 10)))} aria-label="Increase quantity">+</button></div>
+            <div className="quantity-input"><button onClick={() => setQuantity(String(Math.max(1, (Number(quantity) || 1) - 10)))} aria-label={language === "my" ? "အရေအတွက် လျှော့ရန်" : "Decrease quantity"}>−</button><input id="quantity" type="number" min="1" max="1000000" step="1" value={quantity} onChange={e => setQuantity(e.target.value)} /><button onClick={() => setQuantity(String(Math.min(1000000, (Number(quantity) || 0) + 10)))} aria-label={language === "my" ? "အရေအတွက် တိုးရန်" : "Increase quantity"}>+</button></div>
             <div className="quick-quantities">{[10, 50, 100, 500].map(n => <button key={n} className={qty === n ? "quick-selected" : ""} onClick={() => setQuantity(String(n))}>{fmt(n, language)}</button>)}</div>
             <div className="trade-summary">
               <div><span>{t.cost}</span><strong>{money(cost, language)}</strong></div>
@@ -319,7 +319,7 @@ export default function HomePage() {
 
     {confirming && <div className="modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setConfirming(false); }}>
       <section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-        <button className="modal-close" onClick={() => setConfirming(false)} aria-label="Close">×</button>
+        <button className="modal-close" onClick={() => setConfirming(false)} aria-label={language === "my" ? "ပိတ်ရန်" : "Close"}>×</button>
         <span className="panel-kicker">{t.review}</span><h2 id="confirm-title">{t.reviewTitle} · {side}</h2>
         <p>{language === "my" ? selected.questionMm : selected.question}</p>
         <div className="modal-breakdown">
