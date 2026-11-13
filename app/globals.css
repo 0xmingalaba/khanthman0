@@ -487,3 +487,7 @@ html[lang="my"] .market-outcomes span{font-size:11px}
 .top-search .search-glyph{position:relative;width:16px;height:16px;flex:none;font-size:0;line-height:0;transform:none}
 .top-search .search-glyph:before{content:"";position:absolute;left:1px;top:1px;width:9px;height:9px;border:1.8px solid #71838a;border-radius:50%}
 .top-search .search-glyph:after{content:"";position:absolute;left:10px;top:10px;width:6px;height:1.8px;border-radius:2px;background:#71838a;transform:rotate(45deg);transform-origin:left center}
+
+.header-feedback{display:flex;align-items:center;justify-content:center;gap:14px}
+.header-feedback button{border:0;background:transparent;color:#82662d;font-size:18px;line-height:1;padding:0 4px}
+.header-feedback button:hover{color:#4f3b17}
