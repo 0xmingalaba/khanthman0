@@ -665,3 +665,17 @@ body:before{
 @media(prefers-reduced-motion:reduce){
  *,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Keep glass cards dark on hover and selection; never flash to a light surface. */
+.featured-card:hover,
+.market-card:hover,
+.market-card.chosen,
+.market-card:focus-within{
+  background:linear-gradient(145deg,rgba(27,48,77,.72),rgba(11,25,47,.68)) !important;
+  color:#eaf3ff;
+}
+.featured-card:hover h3,
+.market-card:hover h3,
+.market-card.chosen h3,
+.market-card:focus-within h3{color:#eaf3ff}
