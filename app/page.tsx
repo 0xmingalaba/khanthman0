@@ -67,8 +67,8 @@ const money = (pyas: number, locale: Locale) => locale === "my"
 const categoryLabel = (c: Category, locale: Locale) => c === "All" ? copy[locale].all : copy[locale].categories[c];
 const dateLabel = (date: string, locale: Locale) => locale === "my" ? ({ "Dec 31": "ဒီဇင်ဘာ ၃၁", "Dec 10": "ဒီဇင်ဘာ ၁၀", "May 24": "မေလ ၂၄", "Nov 30": "နိုဝင်ဘာ ၃၀" } as Record<string, string>)[date] ?? date : date;
 
-export default function HomePage() {
-  const [language, setLanguage] = useState<Locale>("en");
+export default function HomePage({ initialLocale }: { initialLocale?: Locale } = {}) {
+  const [language, setLanguage] = useState<Locale>(initialLocale ?? "en");
   const [category, setCategory] = useState<Category>("All");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(1);
@@ -93,7 +93,7 @@ export default function HomePage() {
         if (Array.isArray(saved.positions)) setPositions(saved.positions);
         if (Array.isArray(saved.activity)) setActivity(saved.activity);
         if (Number.isSafeInteger(saved.balance)) setBalance(saved.balance);
-        if (saved.language === "en" || saved.language === "my") setLanguage(saved.language);
+        if (!initialLocale && (saved.language === "en" || saved.language === "my")) setLanguage(saved.language);
       }
     } catch { /* Ignore invalid local demo data and keep safe defaults. */ }
     setHydrated(true);
@@ -177,7 +177,7 @@ export default function HomePage() {
         <button className={view === "activity" ? "nav-active" : ""} onClick={() => setView("activity")}>{t.activity}</button>
       </nav>
       <div className="top-actions">
-        <button className="language-switch" onClick={() => setLanguage(x => x === "en" ? "my" : "en")} aria-label="Change language">{language === "en" ? "EN / မြန်မာ" : "မြန်မာ / EN"}</button>
+        <button className="language-switch" onClick={() => window.location.assign(language === "en" ? "/my" : "/en")} aria-label={language === "my" ? "ဘာသာစကား ပြောင်းရန်" : "Change language"}>{language === "en" ? "EN / မြန်မာ" : "မြန်မာ / EN"}</button>
         <div className="balance-pill"><span>{t.balance}</span><strong>{money(balance, language)}</strong></div>
       </div>
     </header>
