@@ -103,6 +103,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
   const [activity, setActivity] = useState<Activity[]>([]);
   const [balance, setBalance] = useState(10000000);
   const [notice, setNotice] = useState("");
+  const [headerFeedback, setHeaderFeedback] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -230,14 +231,14 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
       <label className="top-search">
         <span className="search-glyph" aria-hidden="true">⌕</span>
         <input id="market-search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t.search} aria-label={t.search} />
-        <kbd>⌘ K</kbd>
+        <kbd>Ctrl K</kbd>
       </label>
       <a className="how-link" href="#how-it-works" onClick={e => { e.preventDefault(); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}>
         <span className="info-icon" aria-hidden="true">i</span>{t.how}
       </a>
       <div className="auth-actions">
-        <button type="button" className="login-button" onClick={() => setNotice(language === "my" ? "အကောင့်ဝင်ရောက်မှုကို နောက်အဆင့်တွင် ထည့်သွင်းပါမည်။ ယခုသည် သရုပ်ပြမှုသာ ဖြစ်သည်။" : "Login will be added in a later phase. This is currently a local demo.")}>{language === "my" ? "ဝင်ရန်" : "Log in"}</button>
-        <button type="button" className="signup-button" onClick={() => setNotice(language === "my" ? "အကောင့်ဖွင့်ခြင်းကို နောက်အဆင့်တွင် ထည့်သွင်းပါမည်။ ယခုသည် သရုပ်ပြမှုသာ ဖြစ်သည်။" : "Sign up will be added in a later phase. This is currently a local demo.")}>{language === "my" ? "စာရင်းသွင်းရန်" : "Sign up"}</button>
+        <button type="button" className="login-button" onClick={() => setHeaderFeedback(language === "my" ? "အကောင့်ဝင်ရောက်မှုကို နောက်အဆင့်တွင် ထည့်သွင်းပါမည်။ ယခုသည် သရုပ်ပြမှုသာ ဖြစ်သည်။" : "Login will be added in a later phase. This is currently a local demo.")}>{language === "my" ? "ဝင်ရန်" : "Log in"}</button>
+        <button type="button" className="signup-button" onClick={() => setHeaderFeedback(language === "my" ? "အကောင့်ဖွင့်ခြင်းကို နောက်အဆင့်တွင် ထည့်သွင်းပါမည်။ ယခုသည် သရုပ်ပြမှုသာ ဖြစ်သည်။" : "Sign up will be added in a later phase. This is currently a local demo.")}>{language === "my" ? "စာရင်းသွင်းရန်" : "Sign up"}</button>
       </div>
       <div className="menu-wrap">
         <button type="button" className="menu-trigger" aria-label={language === "my" ? "မီနူးဖွင့်ရန်" : "Open menu"} aria-expanded={menuOpen} aria-haspopup="true" onClick={() => { setMenuOpen(open => !open); setPredictOpen(false); }}>
@@ -252,7 +253,7 @@ export default function HomePage({ initialLocale }: { initialLocale?: Locale } =
         </div>}
       </div>
     </header>
-    {notice && <div className="header-feedback" role="status" aria-live="polite">{notice}</div>}
+    {headerFeedback && <div className="header-feedback" role="status" aria-live="polite"><span>{headerFeedback}</span><button type="button" onClick={() => setHeaderFeedback("")} aria-label={language === "my" ? "အသိပေးချက် ပိတ်ရန်" : "Dismiss notice"}>×</button></div>}
 
     <section className="market-intro">
       <div>
