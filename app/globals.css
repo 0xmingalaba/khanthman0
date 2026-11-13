@@ -482,3 +482,8 @@ html[lang="my"] .market-outcomes span{font-size:11px}
  .menu-trigger{width:24px}
  .menu-trigger span{width:18px}
 }
+
+/* Crisp magnifying-glass icon for the global search field. */
+.top-search .search-glyph{position:relative;width:16px;height:16px;flex:none;font-size:0;line-height:0;transform:none}
+.top-search .search-glyph:before{content:"";position:absolute;left:1px;top:1px;width:9px;height:9px;border:1.8px solid #71838a;border-radius:50%}
+.top-search .search-glyph:after{content:"";position:absolute;left:10px;top:10px;width:6px;height:1.8px;border-radius:2px;background:#71838a;transform:rotate(45deg);transform-origin:left center}
