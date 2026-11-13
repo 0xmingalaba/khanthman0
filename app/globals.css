@@ -587,7 +587,7 @@ body:before{
 .workspace{color:#eaf3ff}
 .workspace .section-heading p{color:#94aac4}
 .workspace .section-heading h2 span{color:#80e7c6}
-.category-chip{color:#9db2ca}
+.category-chip{color:#9db2ca;background:transparent;border-color:transparent}
 .category-chip.selected{background:rgba(84,211,174,.14);border-color:rgba(105,228,191,.28);color:#8df0ce}
 .category-chip:hover{color:#d9f8ee;background:transparent;border-color:rgba(105,228,191,.22)}
 .category-chip.selected:hover{background:rgba(84,211,174,.14);border-color:rgba(105,228,191,.28);color:#8df0ce}
