@@ -26,7 +26,12 @@ async function create(): Promise<Database> {
 
   if (process.env.MINGALA_DB === "pglite") {
     const { createPgliteDatabase } = await import("./pglite");
-    return createPgliteDatabase(process.env.MINGALA_PGLITE_DIR || undefined);
+    // MUST match the CLI default in cli.ts. The CLI seeds a FILE-BACKED database at
+    // ./.data/mingala, while this defaulted to an in-memory instance, so `npm run
+    // dev:pglite` (seed, then dev) seeded one store and served from an empty other one.
+    // The same split broke the CI smoke test. .env.example documents ./.data/mingala as
+    // the default, which is what both sides now use.
+    return createPgliteDatabase(process.env.MINGALA_PGLITE_DIR || "./.data/mingala");
   }
 
   throw new Error(
