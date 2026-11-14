@@ -20,6 +20,10 @@ The fix has two halves, and **both** must be understood before deploying:
 A Next.js route handler cannot see the TCP peer address. It only sees headers, and
 any client can send those. Therefore the app must be *told* the topology.
 
+The committed `.env.example` sets `TRUSTED_PROXY_HOPS=0`. Zero means no
+forwarded-header trust: forwarding headers are ignored unless the deployment
+explicitly opts in.
+
 | Value | Meaning | Effect |
 | --- | --- | --- |
 | `0` (default) | No proxy you control | Forwarding headers are ignored. **All callers share one bucket.** Safe but coarse: a busy NAT shares a limit. |
@@ -55,6 +59,16 @@ With the old code (`split(",")[0]`) the app read `1.2.3.4` — the attacker's fi
 | nginx / Caddy / Traefik reverse proxy | `1` |
 | Cloudflare → nginx → app | `2` (or set `cf-connecting-ip` as the dedicated header) |
 | ALB → nginx → app | `2` |
+
+Configure one or more hops only after verifying the actual proxy topology and how
+each proxy handles forwarding headers. These setups are examples, not verified
+defaults. An incorrect hop count can select an attacker-controlled entry and give
+a request a client identity the application should not trust.
+
+Consider direct access to the application origin as part of that verification. If
+callers can bypass the proxies and reach the application directly, they can supply
+forwarding headers themselves; a hop count cannot make those headers trustworthy.
+Restrict origin access to the trusted proxy path before enabling proxy trust.
 
 An unparsable value fails closed to `0`. A value larger than the number of entries
 actually present also fails closed: the request is bucketed as `untrusted` rather
