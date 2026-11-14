@@ -62,15 +62,37 @@ export type Side = "YES" | "NO";
  * That invariant is worth checking, not assuming. Every statement that locks an `orders`
  * row, and how it gets there:
  *
- *   - trading.ts `cancelOrder`  single order, under the CALLING user's pool lock.
- *   - trading.ts `settleTrade`  its own two orders, under BOTH parties' pool locks.
+ *   - trading.ts `settleTrade`  its own two orders, under BOTH parties' pool locks. The
+ *     pool locks cover both users, so this is exactly the invariant, with no exception.
  *   - reservations.ts           every open BUY order of one user, reached only from
  *     reallocateCashReservations, whose sole caller is `settleTrade`, which holds the
  *     pool locks of exactly the two users it then reallocates.
+ *   - trading.ts `cancelOrder`  a single order row. This is the ONE case where the row
+ *     locked is not yet known to belong to the caller, and it is documented separately
+ *     below.
+ *
+ * THE REJECTED-OWNERSHIP EXCEPTION (`cancelOrder`). The caller's own pool lock is taken
+ * first, at step 2, and only then is the target row locked at step 3 -- because the row
+ * has to be read before its owner can be known. So for one statement the locked row may
+ * belong to a DIFFERENT user, whose pool lock this transaction does not hold. That does
+ * not weaken the invariant, because the function checks ownership immediately after the
+ * lock and, if the order belongs to someone else, throws `forbidden` right there. The
+ * throw rolls the transaction back: no further locks are taken and nothing is mutated.
+ * So no cash_reserved row, no sibling BUY order and no position is ever reached on a
+ * path where ownership was rejected.
+ *
+ * Worth being precise about what this does and does not cost. It is not a deadlock risk:
+ * the caller holds their own pool lock first, and a rejected cancellation is a short
+ * read-then-abort that acquires one order row and nothing else, so it cannot be part of a
+ * cycle involving a pool lock. What it does mean is that a caller can briefly hold a
+ * `FOR UPDATE` lock on another user's order row, which blocks that user's own settlement
+ * of that order for the duration of the (immediately failing) transaction. Treat that as
+ * an accepted property of this shape, not as a break in the ordering.
  *
  * `lockedReservedPool` likewise has only two callers -- `releasableCash` (from
- * `cancelOrder`, under that user's pool lock) and `reallocateCashReservations` -- so
- * every path into the cash_reserved row holds the matching advisory lock first.
+ * `cancelOrder`, under that user's pool lock, and only reached AFTER the ownership check
+ * has passed) and `reallocateCashReservations` -- so every path into the cash_reserved row
+ * holds the matching advisory lock first.
  *
  * RULES THAT MUST NOT BREAK. (a) If any path ever writes a `markets` row, it must take
  * the pool lock first and then the market row exclusively; that inverts steps 1 and 2

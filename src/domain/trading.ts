@@ -27,10 +27,16 @@
  *              6. ALL open BUY order locks of that user (reallocation)
  *              7. positions row locks
  *
- * `placeOrder` runs phase A only; `cancelOrder` runs phase A only, without a step-3 lock;
+ * `placeOrder` runs phase A only, without a step-3 lock; `cancelOrder` runs phase A only;
  * `settleTrade` runs both. Step 6 locks sibling orders AFTER a balance lock and is safe
  * only because the transaction already holds those users' pool advisory locks -- see
  * THE INVARIANT in reservations.ts before adding a caller or a new lock.
+ *
+ * One documented exception: `cancelOrder` locks its target row at step 3 before it can
+ * know the row's owner, so that single lock is not covered by the owner's pool lock. It
+ * aborts with `forbidden` on a foreign order and touches nothing else. This is the only
+ * place where "the row lock is covered by the owner's pool lock" does not hold, and it is
+ * spelled out at the lock in reservations.ts.
  *
  * The market lock comes first only because it is a SHARE lock -- it never queues against
  * another market lock -- and because it rejects a closed market before anything is
@@ -330,6 +336,13 @@ export async function cancelOrder(
       // no market lock on cancellation). Cancellation reads and rewrites this user's
       // reservation pool, so it must take the same pool lock settlement takes; the order
       // row lock below is step 3. See reservations.ts.
+      //
+      // Note the pool lock is the CALLER's, but the row locked at step 3 is only discovered
+      // to be the caller's afterwards -- the owner has to be read before it can be checked.
+      // That gap is the one documented exception to "every order row lock is covered by its
+      // owner's pool lock". It is closed immediately below: a row belonging to another user
+      // throws `forbidden` before any balance, sibling order or position is touched, so the
+      // rejected path takes no further locks and mutates nothing.
       await lockCashPools(tx, [input.userId]);
 
       const found = await tx.query<OrderRow>(
