@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Typecheck, test and build
+    runs-on: ubuntu-latest
+    # A real PostgreSQL server for the concurrency suite. PGlite cannot prove row-lock
+    # contention (single connection, serialised transactions), so the job runs against
+    # the same engine shape as production.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mingala
+          POSTGRES_PASSWORD: mingala
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mingala"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # The suite creates and drops its own databases on this server.
+      TEST_DATABASE_URL: postgresql://mingala:mingala@127.0.0.1:5432/postgres
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Production dependency security audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: TypeScript typecheck
+        run: npm run typecheck
+      - name: Unit tests (money, ledger math, lifecycle, auth primitives)
+        run: npm test
+      - name: Integration tests (SQL semantics via PGlite)
+        run: npm run test:integration
+      - name: Concurrency tests (real PostgreSQL, multiple connections)
+        # NOTE: this step runs the suite directly and propagates its exit status.
+        # It does NOT yet guard against masked failures or whole-suite skips; that
+        # hardening is a separate change and is deliberately not part of this baseline.
+        # `shell: bash` + `set -euo pipefail` is used so no future edit can reintroduce
+        # a pipeline that swallows the runner's exit status.
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run test:postgres
+      - name: Production build
+        run: npm run build
+      - name: Route and API smoke tests
+        env:
+          MINGALA_DB: pglite
+          TRUSTED_PROXY_HOPS: "0"
+        run: |
+          node --import tsx src/db/cli.ts seed
+          npm run start -- --hostname 127.0.0.1 > /tmp/mingala-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 45); do
+            if curl --silent --fail http://127.0.0.1:3000/my >/dev/null; then break; fi
+            sleep 1
+          done
+          my_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/my)
+          en_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/en)
+          root_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/)
+          markets_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/api/markets)
+          unauth_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            -X POST http://127.0.0.1:3000/api/orders -H 'content-type: application/json' \
+            -d '{"marketId":"00000000-0000-0000-0000-000000000000","side":"YES","action":"BUY","pricePya":50,"quantity":1,"idempotencyKey":"ci-smoke-key-01"}')
+          test "$my_status" = "200"
+          test "$en_status" = "200"
+          test "$root_status" = "307"
+          test "$markets_status" = "200"
+          # An unauthenticated order must be refused, never executed.
+          test "$unauth_status" = "401"
+          # The health endpoint must report a balanced ledger and leak no balances.
+          health_json=$(curl --silent --fail http://127.0.0.1:3000/api/health)
+          echo "$health_json"
+          echo "$health_json" | grep -q '"status":"ok"'
+          # The health payload reports *whether* the ledger balances, never amounts.
+          # Match concrete sensitive tokens, not the word "balanced".
+          if echo "$health_json" | grep -qiE '"balance"|availablePya|reservedPya|totalPya|postgres://|DATABASE_URL|password|@|accountId|userId'; then
+            echo "health endpoint leaked sensitive fields"
+            exit 1
+          fi
+          curl --silent --fail http://127.0.0.1:3000/my | grep -q "ဈေးကွက်"
+          curl --silent --fail http://127.0.0.1:3000/en | grep -q "THE MARKETPLACE"
