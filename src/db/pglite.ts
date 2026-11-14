@@ -1,0 +1,81 @@
+/**
+ * PGlite adapter — PostgreSQL in WASM.
+ *
+ * Used by tests and by the optional local demo server. It executes the same
+ * migration SQL and the same domain queries as production, so an integration
+ * test here is a genuine Postgres transaction test.
+ */
+
+import { PGlite } from "@electric-sql/pglite";
+import {
+  type Database,
+  type SqlParam,
+  type Transaction,
+  lockKeyFor,
+} from "./executor";
+
+type Raw = {
+  query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[]; affectedRows?: number }>;
+  exec: (sql: string) => Promise<unknown>;
+};
+
+export async function createPgliteDatabase(dataDir?: string): Promise<Database> {
+  const instance = dataDir ? new PGlite(dataDir) : new PGlite();
+  await instance.waitReady;
+  const raw = instance as unknown as Raw;
+
+  const scoped = (runner: Raw) => ({
+    async exec(sql: string) {
+      await runner.exec(sql);
+    },
+    async query<T>(sql: string, params: SqlParam[] = []) {
+      const result = await runner.query(sql, params);
+      return { rows: result.rows as T[], rowCount: result.affectedRows ?? result.rows.length };
+    },
+  });
+
+  const base = scoped(raw);
+  // PGlite runs a single logical connection, so transactions are serialised.
+  let queue: Promise<unknown> = Promise.resolve();
+
+  const txApi: Transaction = {
+    exec: base.exec,
+    query: base.query,
+    async lock(key: string) {
+      // PGlite serialises transactions already; keep the advisory lock for parity
+      // with production so the same code path is exercised.
+      await raw.query("SELECT pg_advisory_xact_lock($1::bigint)", [lockKeyFor(key)]);
+    },
+  };
+
+  return {
+    exec: base.exec,
+    query: base.query,
+    async close() {
+      await instance.close();
+    },
+    transaction<T>(fn: (tx: Transaction) => Promise<T>): Promise<T> {
+      const run = async (): Promise<T> => {
+        await raw.exec("BEGIN");
+        try {
+          const result = await fn(txApi);
+          await raw.exec("COMMIT");
+          return result;
+        } catch (error) {
+          try {
+            await raw.exec("ROLLBACK");
+          } catch {
+            /* ignore: surface the original error */
+          }
+          throw error;
+        }
+      };
+      const next = queue.then(run, run);
+      queue = next.then(
+        () => undefined,
+        () => undefined
+      );
+      return next;
+    },
+  };
+}
