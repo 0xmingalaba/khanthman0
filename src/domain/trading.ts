@@ -14,14 +14,25 @@
  * Every mutation runs in a single transaction and every operation is idempotent by
  * request key.
  *
- * LOCK ORDER. Book mutations share one order, documented in full at `lockCashPool` in
- * src/domain/reservations.ts:
+ * LOCK ORDER. Documented in full in the canonical block above `lockCashPool` in
+ * src/domain/reservations.ts; that is the authority, this is the summary. There are two
+ * phases, and order locks appear in BOTH -- they are not all taken up front:
  *
- *     1. markets row (FOR SHARE)  2. cash-pool advisory lock
- *     3. orders row locks         4. account_balances FOR UPDATE
+ *     PHASE A  1. markets row (FOR SHARE, placeOrder only)
+ *              2. cash-pool advisory lock
+ *              3. the trade's own orders row locks
+ *              4. account_balances FOR UPDATE
  *
- * `placeOrder` starts at step 1; `settleTrade` and `cancelOrder` start at step 2. The
- * market lock comes first only because it is a SHARE lock -- it never queues against
+ *     PHASE B  5. account_balances FOR UPDATE (reallocated user's cash_reserved)
+ *              6. ALL open BUY order locks of that user (reallocation)
+ *              7. positions row locks
+ *
+ * `placeOrder` runs phase A only; `cancelOrder` runs phase A only, without a step-3 lock;
+ * `settleTrade` runs both. Step 6 locks sibling orders AFTER a balance lock and is safe
+ * only because the transaction already holds those users' pool advisory locks -- see
+ * THE INVARIANT in reservations.ts before adding a caller or a new lock.
+ *
+ * The market lock comes first only because it is a SHARE lock -- it never queues against
  * another market lock -- and because it rejects a closed market before anything is
  * reserved. Do not add a market row lock to the other two mutations: it would invert
  * steps 1 and 2 and reintroduce a cycle.
@@ -449,9 +460,10 @@ export async function settleTrade(
   // FIRST locks in this transaction: step 2 of the canonical order, with no market lock
   // ahead of it. Settlement rewrites BOTH users' reservation pools (the buyer's via
   // reallocateCashReservations, the seller's via share escrow), and reallocation locks
-  // every open buy order of the buyer. Taking the pools up front, in sorted user order,
-  // is what prevents the lock cycle documented in reservations.ts. The two order rows are
-  // then locked together at step 3, and balances at step 4.
+  // every open buy order of that user. Taking the pools up front, in sorted user order,
+  // is what prevents the lock cycle documented in reservations.ts -- it is also what lets
+  // the sibling-order locks at the end of this function happen safely, long after the
+  // balance locks. The two trade orders are locked at step 3, balances at step 4.
   const parties = await tx.query<{ buyer_id: string; seller_id: string }>(
     `SELECT b.user_id AS buyer_id, s.user_id AS seller_id
        FROM orders b, orders s
@@ -581,9 +593,15 @@ export async function settleTrade(
     );
   }
 
-  // Keep every open buy order's share of the cash pool true to the ledger. Both users
-  // are reallocated, not just the buyer: the seller's own resting buy orders share a
-  // pool that this settlement has just moved value through.
+  // Phase B (steps 5 and 6), and the only phase B in the codebase. Keep every open buy
+  // order's share of the cash pool true to the ledger. Both users are reallocated, not
+  // just the buyer: the seller's own resting buy orders share a pool that this settlement
+  // has just moved value through.
+  //
+  // Each call locks that user's cash_reserved row and then ALL of their open BUY orders,
+  // which is why these row locks land after the balance locks above rather than before.
+  // Safe only because lockCashPools already covered both users, so no competing
+  // transaction can reach these sibling rows; see THE INVARIANT in reservations.ts.
   await reallocateCashReservations(tx, buy.user_id);
   await reallocateCashReservations(tx, sell.user_id);
 

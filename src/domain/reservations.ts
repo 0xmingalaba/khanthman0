@@ -16,13 +16,33 @@ import { ensureAccount, lockBalance } from "@/src/domain/ledger";
 
 export type Side = "YES" | "NO";
 
-/**
+/*
  * CANONICAL LOCK ORDER for every book mutation. Read this before adding a lock.
  *
- *   1. `markets` row, FOR SHARE      — `placeOrder` only, via lockTradableMarket.
- *   2. cash-pool advisory lock       — per user, via lockCashPool/lockCashPools.
- *   3. `orders` row locks            — ascending id, or a single row.
- *   4. `account_balances` FOR UPDATE — via lockBalance/lockBalances.
+ * There are TWO PHASES, and row locks are grouped by phase rather than by table. The
+ * sibling-order locks in phase B are deliberately taken AFTER a balance lock, so the
+ * invariant is NOT "every order lock precedes every balance lock". Do not restate it
+ * that way.
+ *
+ * PHASE A -- one shared prefix, taken before anything is mutated:
+ *
+ *   1. `markets` row, FOR SHARE       `placeOrder` only, via lockTradableMarket
+ *   2. cash-pool advisory lock        per user, via lockCashPool/lockCashPools
+ *   3. `orders` row locks             `settleTrade`'s two trade orders, or
+ *                                     `cancelOrder`'s one order
+ *   4. `account_balances` FOR UPDATE  via lockBalance/lockBalances
+ *
+ * PHASE B -- reservation reallocation, reached only from `settleTrade`:
+ *
+ *   5. `account_balances` FOR UPDATE  lockedReservedPool: the reallocated user's
+ *                                     cash_reserved row (already held for the buyer,
+ *                                     first taken here for the seller)
+ *   6. `orders` row locks             EVERY open BUY order of that user, via
+ *                                     reallocateCashReservations (ORDER BY created_at, id)
+ *   7. `positions` row locks          via applyCostBasis, after both reallocations
+ *
+ * `cancelOrder` runs phase A only; `placeOrder` runs phase A with no step-3 order lock
+ * (it inserts a new row) and skips phase B entirely.
  *
  * Step 1 is the one exception to "pool lock first", and it is deliberate: the market
  * lock is a SHARE lock, which does not conflict with another SHARE lock, so two
@@ -31,14 +51,36 @@ export type Side = "YES" | "NO";
  * reserved. Nothing in the codebase takes a market row exclusively -- there is no
  * UPDATE of `markets` outside tests -- which is what keeps the exception safe.
  *
- * THE RULE THAT MUST NOT BREAK: if any path ever needs to write a `markets` row, it
- * must take the pool lock FIRST and then the market row exclusively. That inverts
- * step 1 and step 2, and `placeOrder` holding a market SHARE lock while waiting for a
- * pool lock would then cycle against it. Until such a path exists, the current order is
- * correct.
+ * THE INVARIANT THAT MAKES PHASE B SAFE. Phase B's locks are safe despite coming after
+ * a balance lock, because every row it reaches is owned by a user whose cash-pool
+ * advisory lock this transaction already holds at step 2. A competing transaction
+ * cannot lock those sibling BUY rows at all until it acquires that same advisory lock,
+ * so step 6 can never block on a concurrent holder, and no lock cycle can pass through
+ * it. The ordering inside phase B is therefore irrelevant to deadlock; it is only
+ * required to be consistent, which it is (balance, then ascending orders).
  *
- * ---------------------------------------------------------------------------
+ * That invariant is worth checking, not assuming. Every statement that locks an `orders`
+ * row, and how it gets there:
  *
+ *   - trading.ts `cancelOrder`  single order, under the CALLING user's pool lock.
+ *   - trading.ts `settleTrade`  its own two orders, under BOTH parties' pool locks.
+ *   - reservations.ts           every open BUY order of one user, reached only from
+ *     reallocateCashReservations, whose sole caller is `settleTrade`, which holds the
+ *     pool locks of exactly the two users it then reallocates.
+ *
+ * `lockedReservedPool` likewise has only two callers -- `releasableCash` (from
+ * `cancelOrder`, under that user's pool lock) and `reallocateCashReservations` -- so
+ * every path into the cash_reserved row holds the matching advisory lock first.
+ *
+ * RULES THAT MUST NOT BREAK. (a) If any path ever writes a `markets` row, it must take
+ * the pool lock first and then the market row exclusively; that inverts steps 1 and 2
+ * and would make `placeOrder` cycle. (b) Any new caller of
+ * `reallocateCashReservations` or `lockedReservedPool` MUST already hold that user's
+ * pool lock, or step 6 stops being unreachable by competitors and the original 40P01
+ * deadlock returns in a new shape.
+ */
+
+/**
  * Serialise every mutation that touches one user's cash reservation pool.
  *
  * WHY THIS EXISTS. `reallocateCashReservations` locks EVERY open buy order of the
@@ -52,9 +94,11 @@ export type Side = "YES" | "NO";
  * transactions serial for that user, so the cycle cannot form, and the loser simply
  * waits instead of failing.
  *
- * WHERE IT SITS. Second in the canonical order above — after `placeOrder`'s market
- * SHARE lock and before every orders/balances lock. It is the first lock in
- * `settleTrade` and `cancelOrder`, and the first *conflicting* lock in `placeOrder`.
+ * WHERE IT SITS. Step 2 of the canonical order above: after `placeOrder`'s market
+ * SHARE lock, before every orders and balances lock in both phases. It is the first lock
+ * in `settleTrade` and `cancelOrder`, and the first *conflicting* lock in `placeOrder`.
+ * Holding it for a user is what lets phase B take that user's sibling BUY order locks
+ * after a balance lock without risk; see THE INVARIANT in the canonical block above.
  * When a transaction involves two users, acquire both pools sorted, so two settlements
  * that mirror each other cannot deadlock on the pair:
  *
@@ -133,12 +177,17 @@ export async function releasableCash(
  * another order has already spent. `lockBalance` blocks the second transaction until
  * the first commits, so it re-reads the committed value.
  *
- * Lock ordering: this takes the balance row at step 4 of the canonical order, so
- * callers must already hold the cash-pool advisory lock and their `orders` row locks.
- * Both call sites satisfy that -- `settleTrade` and `cancelOrder` take the pool lock
- * before touching rows, then order locks, then balances. The advisory lock is what makes
- * the interleaving safe; the balance lock alone would not, because two transactions
- * could each be holding a different order row while waiting for it.
+ * Lock ordering: this takes the cash_reserved row at step 5 (phase B), so callers must
+ * already hold that user's cash-pool advisory lock. Both call sites do: `releasableCash`
+ * runs under `cancelOrder`'s pool lock, and `reallocateCashReservations` runs under
+ * `settleTrade`'s pool locks for both parties. The advisory lock is what makes the
+ * interleaving safe; the balance lock alone would not, because two transactions could
+ * each be holding a different orders row while waiting for it.
+ *
+ * Note this is NOT the first time a settlement touches a balance: `settleTrade` already
+ * locked cash_reserved at step 4, so for the buyer this reuses a lock it holds. That is
+ * fine -- re-locking a row a transaction already owns is a no-op -- but it is why the
+ * canonical order numbers phase B from 5 rather than pretending balances all come at 4.
  */
 async function lockedReservedPool(tx: Transaction, userId: string): Promise<number> {
   const account = await ensureAccount(tx, { type: "user", id: userId }, "PYA", "cash_reserved");
@@ -157,6 +206,13 @@ export async function reallocateCashReservations(tx: Transaction, userId: string
   // Locked, not merely read: this function rewrites every open order's slice of a
   // single shared pool, so a concurrent reader would otherwise allocate the same
   // Pyas twice. See lockedReservedPool for the full reasoning.
+  //
+  // Lock order here is phase B, steps 5 then 6: the pool balance row first, then every
+  // open BUY order of this user in (created_at, id) order. Those sibling order locks
+  // deliberately come AFTER a balance lock. They are safe because the only caller,
+  // settleTrade, already holds this user's cash-pool advisory lock, so no competing
+  // transaction can hold or want these rows. If a new caller is added, it must take the
+  // same pool lock first. See THE INVARIANT in the canonical block above.
   const pool = await lockedReservedPool(tx, userId);
   const orders = await tx.query<{
     id: string;
