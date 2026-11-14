@@ -11,8 +11,20 @@
  * NOT implemented here (no order crossing, no minting, no merging): the matching
  * policy is not yet specified by the owner, so this module must not guess it.
  *
- * Every mutation runs in a single transaction with balance row locks taken in a
- * deterministic order, and every operation is idempotent by request key.
+ * Every mutation runs in a single transaction and every operation is idempotent by
+ * request key.
+ *
+ * LOCK ORDER. Book mutations share one order, documented in full at `lockCashPool` in
+ * src/domain/reservations.ts:
+ *
+ *     1. markets row (FOR SHARE)  2. cash-pool advisory lock
+ *     3. orders row locks         4. account_balances FOR UPDATE
+ *
+ * `placeOrder` starts at step 1; `settleTrade` and `cancelOrder` start at step 2. The
+ * market lock comes first only because it is a SHARE lock -- it never queues against
+ * another market lock -- and because it rejects a closed market before anything is
+ * reserved. Do not add a market row lock to the other two mutations: it would invert
+ * steps 1 and 2 and reintroduce a cycle.
  */
 
 import { createHash } from "node:crypto";
@@ -212,10 +224,15 @@ export async function placeOrder(db: Database, input: PlaceOrderInput): Promise<
     async (tx) => {
       await lockTradableMarket(tx, input.marketId, now);
 
+      // Step 2 of the canonical order. The market SHARE lock above is step 1, so this is
+      // deliberately NOT the first lock of this transaction -- the two are ordered this
+      // way because a SHARE lock cannot queue behind another SHARE lock, while the
+      // closed-market check has to run before collateral moves.
+      //
       // Placing a BUY grows this user's reservation pool and inserts an open order that
       // reallocation will later lock, so it takes the same pool lock as settlement and
-      // cancellation. Taking it here keeps one consistent first lock across the three
-      // mutations that touch the pool.
+      // cancellation. Everything below (order insert, balance locks, journal) sits at
+      // steps 3 and 4.
       await lockCashPools(tx, [input.userId]);
 
       const cashAvailable = await ensureAccount(tx, { type: "user", id: input.userId }, PYA, "cash_available");
@@ -298,8 +315,10 @@ export async function cancelOrder(
       requestHash: requestFingerprint({ orderId: input.orderId }),
     },
     async (tx) => {
-      // FIRST lock. Cancellation reads and rewrites this user's reservation pool, so it
-      // must take the same pool lock settlement takes (see reservations.ts).
+      // Step 2 of the canonical order, and the first lock this transaction takes (there is
+      // no market lock on cancellation). Cancellation reads and rewrites this user's
+      // reservation pool, so it must take the same pool lock settlement takes; the order
+      // row lock below is step 3. See reservations.ts.
       await lockCashPools(tx, [input.userId]);
 
       const found = await tx.query<OrderRow>(
@@ -427,10 +446,12 @@ export async function settleTrade(
 ): Promise<{ tradeId: string; journalId: string; pricePya: number; quantity: number }> {
   const quantity = assertShares(input.quantity);
 
-  // FIRST locks in this transaction. Settlement rewrites BOTH users' reservation pools
-  // (the buyer's via reallocateCashReservations, the seller's via share escrow), and
-  // reallocation locks every open buy order of the buyer. Taking the pools up front, in
-  // sorted user order, is what prevents the lock cycle documented in reservations.ts.
+  // FIRST locks in this transaction: step 2 of the canonical order, with no market lock
+  // ahead of it. Settlement rewrites BOTH users' reservation pools (the buyer's via
+  // reallocateCashReservations, the seller's via share escrow), and reallocation locks
+  // every open buy order of the buyer. Taking the pools up front, in sorted user order,
+  // is what prevents the lock cycle documented in reservations.ts. The two order rows are
+  // then locked together at step 3, and balances at step 4.
   const parties = await tx.query<{ buyer_id: string; seller_id: string }>(
     `SELECT b.user_id AS buyer_id, s.user_id AS seller_id
        FROM orders b, orders s

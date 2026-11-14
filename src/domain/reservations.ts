@@ -17,6 +17,28 @@ import { ensureAccount, lockBalance } from "@/src/domain/ledger";
 export type Side = "YES" | "NO";
 
 /**
+ * CANONICAL LOCK ORDER for every book mutation. Read this before adding a lock.
+ *
+ *   1. `markets` row, FOR SHARE      — `placeOrder` only, via lockTradableMarket.
+ *   2. cash-pool advisory lock       — per user, via lockCashPool/lockCashPools.
+ *   3. `orders` row locks            — ascending id, or a single row.
+ *   4. `account_balances` FOR UPDATE — via lockBalance/lockBalances.
+ *
+ * Step 1 is the one exception to "pool lock first", and it is deliberate: the market
+ * lock is a SHARE lock, which does not conflict with another SHARE lock, so two
+ * `placeOrder` calls can hold it simultaneously and cannot queue behind each other. It
+ * is also the lock that rejects a closed market, so it has to come before anything is
+ * reserved. Nothing in the codebase takes a market row exclusively -- there is no
+ * UPDATE of `markets` outside tests -- which is what keeps the exception safe.
+ *
+ * THE RULE THAT MUST NOT BREAK: if any path ever needs to write a `markets` row, it
+ * must take the pool lock FIRST and then the market row exclusively. That inverts
+ * step 1 and step 2, and `placeOrder` holding a market SHARE lock while waiting for a
+ * pool lock would then cycle against it. Until such a path exists, the current order is
+ * correct.
+ *
+ * ---------------------------------------------------------------------------
+ *
  * Serialise every mutation that touches one user's cash reservation pool.
  *
  * WHY THIS EXISTS. `reallocateCashReservations` locks EVERY open buy order of the
@@ -30,9 +52,11 @@ export type Side = "YES" | "NO";
  * transactions serial for that user, so the cycle cannot form, and the loser simply
  * waits instead of failing.
  *
- * LOCK ORDER. This is the FIRST lock any caller takes. When a transaction involves two
- * users, acquire both pools in a sorted order so two settlements that mirror each other
- * cannot deadlock on the pair:
+ * WHERE IT SITS. Second in the canonical order above — after `placeOrder`'s market
+ * SHARE lock and before every orders/balances lock. It is the first lock in
+ * `settleTrade` and `cancelOrder`, and the first *conflicting* lock in `placeOrder`.
+ * When a transaction involves two users, acquire both pools sorted, so two settlements
+ * that mirror each other cannot deadlock on the pair:
  *
  *     lockCashPools(tx, [buyerId, sellerId])
  *
@@ -109,9 +133,12 @@ export async function releasableCash(
  * another order has already spent. `lockBalance` blocks the second transaction until
  * the first commits, so it re-reads the committed value.
  *
- * Lock ordering: callers must not already hold an `orders` row lock in a way that
- * inverts this. `settleTrade` locks orders first, then balances, and `cancelOrder`
- * does the same — so the pool lock is always taken last and consistently.
+ * Lock ordering: this takes the balance row at step 4 of the canonical order, so
+ * callers must already hold the cash-pool advisory lock and their `orders` row locks.
+ * Both call sites satisfy that -- `settleTrade` and `cancelOrder` take the pool lock
+ * before touching rows, then order locks, then balances. The advisory lock is what makes
+ * the interleaving safe; the balance lock alone would not, because two transactions
+ * could each be holding a different order row while waiting for it.
  */
 async function lockedReservedPool(tx: Transaction, userId: string): Promise<number> {
   const account = await ensureAccount(tx, { type: "user", id: userId }, "PYA", "cash_reserved");
