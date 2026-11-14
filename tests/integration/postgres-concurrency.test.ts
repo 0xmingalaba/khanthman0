@@ -411,9 +411,14 @@ suite("PostgreSQL cancellation versus settlement", () => {
     ]);
 
     const succeeded = results.filter((value) => value === "settled").length;
-    assert.ok(
-      succeeded <= 1 || results.includes("conflict"),
-      `at most one full settlement may pass; got ${JSON.stringify(results)}`
+    // Exactly one may fill: the second 40-share settlement cannot fit in the 60-share
+    // order. Zero would mean the race silently lost both fills, and two would be an
+    // oversell. Deadlocks/serialisation failures already throw inside settleRace, so
+    // they can no longer arrive here disguised as a "conflict".
+    assert.equal(
+      succeeded,
+      1,
+      `exactly one 40-share settlement must fill a 60-share order; got ${JSON.stringify(results)}`
     );
 
     // The decisive invariant: the buyer's filled shares never exceed the order size.
@@ -609,7 +614,15 @@ suite("production pg adapter", () => {
   });
 });
 
-/** Settle in its own transaction, classifying the outcome instead of throwing. */
+/**
+ * Settle in its own transaction, classifying only GENUINE domain outcomes.
+ *
+ * Deadlocks and serialisation failures are deliberately NOT accepted here. They are not
+ * legitimate outcomes of a correct implementation: they mean two transactions built a
+ * lock cycle, and treating them as an ordinary "conflict" is what previously hid a real
+ * 40P01 deadlock in concurrent settlement. If the database aborts either side, that error
+ * propagates and fails the test.
+ */
 async function settleRace(
   db: Database,
   buyOrderId: string,
@@ -627,12 +640,242 @@ async function settleRace(
         ? "conflict"
         : "refused";
     }
-    // Deadlock or serialisation aborts are legitimate outcomes of a real race.
     const message = error instanceof Error ? error.message : String(error);
-    if (/deadlock|serializ|could not serialize/i.test(message)) return "conflict";
+    if (/deadlock|serializ|could not serialize/i.test(message)) {
+      throw new Error(
+        `concurrent settlement deadlocked (${message}). This is a lock-ordering defect, ` +
+          "not an acceptable race outcome. See src/domain/reservations.ts."
+      );
+    }
     throw error;
   }
 }
+
+/*
+ * REGRESSION: CONCURRENT SETTLEMENT LOCK ORDERING
+ *
+ * These tests exist because of a real 40P01 deadlock, reproduced 5/5 against a live
+ * server before the fix. Two settlements for the same buyer each locked their own pair
+ * of orders and then entered reallocateCashReservations, which locks EVERY open buy
+ * order of that buyer -- so each transaction ended up waiting on the other's orders.
+ *
+ * The fix takes a per-user advisory lock (lockCashPools) before any order or balance
+ * row lock, and sorts the user ids so mirrored pairs cannot cycle.
+ *
+ * The previous suite could not catch this: settleRace() mapped "deadlock detected" to an
+ * ordinary "conflict" outcome. That masking is gone, so a regression here now fails
+ * loudly instead of passing quietly.
+ */
+suite("PostgreSQL concurrent settlement never deadlocks", () => {
+  let ctx: PgTestContext;
+  let db: Database;
+
+  before(async () => {
+    ctx = await createPgTestDb();
+    db = ctx.db;
+  });
+
+  after(async () => {
+    await ctx.close();
+  });
+
+  test("two settlements for the same buyer both succeed", async () => {
+    const seller = await makeUser(db);
+    const buyer = await makeUser(db);
+    const market = await makeOpenMarket(db);
+    await grantShares(db, {
+      userId: seller.id,
+      marketId: market.id,
+      side: "YES",
+      quantity: 200,
+      pricePya: 50,
+    });
+
+    // Two BUY orders by the SAME buyer share one cash_reserved pool, so settling both
+    // reallocates the same pool -- the exact shape that deadlocked.
+    const buyA = await placeOrder(db, {
+      userId: buyer.id,
+      marketId: market.id,
+      side: "YES",
+      action: "BUY",
+      pricePya: 60,
+      quantity: 50,
+      idempotencyKey: "reg-buy-a-key-1",
+    });
+    const buyB = await placeOrder(db, {
+      userId: buyer.id,
+      marketId: market.id,
+      side: "YES",
+      action: "BUY",
+      pricePya: 60,
+      quantity: 50,
+      idempotencyKey: "reg-buy-b-key-1",
+    });
+    const sellA = await placeOrder(db, {
+      userId: seller.id,
+      marketId: market.id,
+      side: "YES",
+      action: "SELL",
+      pricePya: 50,
+      quantity: 50,
+      idempotencyKey: "reg-sell-a-key-1",
+    });
+    const sellB = await placeOrder(db, {
+      userId: seller.id,
+      marketId: market.id,
+      side: "YES",
+      action: "SELL",
+      pricePya: 50,
+      quantity: 50,
+      idempotencyKey: "reg-sell-b-key-1",
+    });
+
+    // settleRace throws if either side deadlocks.
+    for (let round = 1; round <= 3; round += 1) {
+      const results = await Promise.all([
+        settleRace(db, buyA.id, sellA.id, 5),
+        settleRace(db, buyB.id, sellB.id, 5),
+      ]);
+      assert.deepEqual(
+        results,
+        ["settled", "settled"],
+        `round ${round}: both concurrent settlements must succeed, got ${JSON.stringify(results)}`
+      );
+    }
+
+    await assertReconciled(db);
+  });
+
+  test("mirrored settlements between two users both succeed", async () => {
+    // u1 buys from u2 while u2 buys from u1. Without a sorted pool lock these two
+    // transactions acquire the same pair of locks in opposite orders.
+    const u1 = await makeUser(db);
+    const u2 = await makeUser(db);
+    const market = await makeOpenMarket(db);
+    for (const u of [u1, u2]) {
+      await grantShares(db, {
+        userId: u.id,
+        marketId: market.id,
+        side: "YES",
+        quantity: 100,
+        pricePya: 50,
+      });
+    }
+
+    const buy1 = await placeOrder(db, {
+      userId: u1.id, marketId: market.id, side: "YES", action: "BUY",
+      pricePya: 60, quantity: 20, idempotencyKey: "reg-mx-buy-1-key",
+    });
+    const buy2 = await placeOrder(db, {
+      userId: u2.id, marketId: market.id, side: "YES", action: "BUY",
+      pricePya: 60, quantity: 20, idempotencyKey: "reg-mx-buy-2-key",
+    });
+    const sell1 = await placeOrder(db, {
+      userId: u1.id, marketId: market.id, side: "YES", action: "SELL",
+      pricePya: 50, quantity: 20, idempotencyKey: "reg-mx-sell-1-key",
+    });
+    const sell2 = await placeOrder(db, {
+      userId: u2.id, marketId: market.id, side: "YES", action: "SELL",
+      pricePya: 50, quantity: 20, idempotencyKey: "reg-mx-sell-2-key",
+    });
+
+    const results = await Promise.all([
+      settleRace(db, buy1.id, sell2.id, 5),
+      settleRace(db, buy2.id, sell1.id, 5),
+    ]);
+    assert.deepEqual(
+      results,
+      ["settled", "settled"],
+      `mirrored settlements must both succeed, got ${JSON.stringify(results)}`
+    );
+    await assertReconciled(db);
+  });
+
+  test("three concurrent settlements for one buyer all succeed", async () => {
+    const seller = await makeUser(db);
+    const buyer = await makeUser(db);
+    const market = await makeOpenMarket(db);
+    await grantShares(db, {
+      userId: seller.id,
+      marketId: market.id,
+      side: "YES",
+      quantity: 300,
+      pricePya: 50,
+    });
+
+    const buys: Awaited<ReturnType<typeof placeOrder>>[] = [];
+    const sells: Awaited<ReturnType<typeof placeOrder>>[] = [];
+    for (let i = 0; i < 3; i += 1) {
+      buys.push(
+        await placeOrder(db, {
+          userId: buyer.id, marketId: market.id, side: "YES", action: "BUY",
+          pricePya: 60, quantity: 40, idempotencyKey: `reg-tri-buy-${i}-key`,
+        })
+      );
+      sells.push(
+        await placeOrder(db, {
+          userId: seller.id, marketId: market.id, side: "YES", action: "SELL",
+          pricePya: 50, quantity: 40, idempotencyKey: `reg-tri-sell-${i}-key`,
+        })
+      );
+    }
+
+    const results = await Promise.all(
+      buys.map((buy, i) => settleRace(db, buy.id, sells[i].id, 2))
+    );
+    assert.deepEqual(
+      results,
+      ["settled", "settled", "settled"],
+      `all three concurrent settlements must succeed, got ${JSON.stringify(results)}`
+    );
+    await assertReconciled(db);
+  });
+
+  test("concurrent settlement and cancellation both succeed for the same buyer", async () => {
+    // The pool lock also covers cancellation, so this must serialise rather than deadlock.
+    const seller = await makeUser(db);
+    const buyer = await makeUser(db);
+    const market = await makeOpenMarket(db);
+    await grantShares(db, {
+      userId: seller.id, marketId: market.id, side: "YES", quantity: 200, pricePya: 50,
+    });
+
+    const buyA = await placeOrder(db, {
+      userId: buyer.id, marketId: market.id, side: "YES", action: "BUY",
+      pricePya: 60, quantity: 50, idempotencyKey: "reg-cx-buy-a-key",
+    });
+    const buyB = await placeOrder(db, {
+      userId: buyer.id, marketId: market.id, side: "YES", action: "BUY",
+      pricePya: 60, quantity: 50, idempotencyKey: "reg-cx-buy-b-key",
+    });
+    const sell = await placeOrder(db, {
+      userId: seller.id, marketId: market.id, side: "YES", action: "SELL",
+      pricePya: 50, quantity: 50, idempotencyKey: "reg-cx-sell-key",
+    });
+
+    const [settleOutcome, cancelOutcome] = await Promise.all([
+      settleRace(db, buyA.id, sell.id, 5),
+      cancelOrder(db, {
+        userId: buyer.id,
+        orderId: buyB.id,
+        idempotencyKey: "reg-cx-cancel-key",
+      }).then(
+        () => "cancelled" as const,
+        (error: unknown) => {
+          const message = error instanceof Error ? error.message : String(error);
+          if (/deadlock|serializ|could not serialize/i.test(message)) {
+            throw new Error(`cancellation deadlocked against settlement: ${message}`);
+          }
+          return "refused" as const;
+        }
+      ),
+    ]);
+
+    assert.equal(settleOutcome, "settled", "the settlement must succeed");
+    assert.equal(cancelOutcome, "cancelled", "the cancellation must succeed");
+    await assertReconciled(db);
+  });
+});
 
 /** Every asset must sum to zero across all accounts. */
 async function assertReconciled(db: Database): Promise<void> {

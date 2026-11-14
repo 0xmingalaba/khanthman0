@@ -16,6 +16,40 @@ import { ensureAccount, lockBalance } from "@/src/domain/ledger";
 
 export type Side = "YES" | "NO";
 
+/**
+ * Serialise every mutation that touches one user's cash reservation pool.
+ *
+ * WHY THIS EXISTS. `reallocateCashReservations` locks EVERY open buy order of the
+ * buyer while rewriting their slices of the shared pool. Without a coarser guard, two
+ * concurrent settlements for the same buyer each lock their own pair of orders first and
+ * then each reach for the other's — a textbook lock cycle that PostgreSQL breaks by
+ * aborting one side with 40P01 (deadlock detected). Reproduced 5/5 against a real server
+ * before this guard was added.
+ *
+ * Taking a per-user advisory lock BEFORE any order or balance row lock makes those
+ * transactions serial for that user, so the cycle cannot form, and the loser simply
+ * waits instead of failing.
+ *
+ * LOCK ORDER. This is the FIRST lock any caller takes. When a transaction involves two
+ * users, acquire both pools in a sorted order so two settlements that mirror each other
+ * cannot deadlock on the pair:
+ *
+ *     lockCashPools(tx, [buyerId, sellerId])
+ *
+ * Advisory locks are re-entrant within a transaction and are released at commit or
+ * rollback, so this cannot leak across requests.
+ */
+export async function lockCashPool(tx: Transaction, userId: string): Promise<void> {
+  await tx.lock(`cash-pool:${userId}`);
+}
+
+/** Lock several users' pools in a stable order. See lockCashPool. */
+export async function lockCashPools(tx: Transaction, userIds: string[]): Promise<void> {
+  for (const userId of [...new Set(userIds)].sort()) {
+    await lockCashPool(tx, userId);
+  }
+}
+
 /** Total reserved by a user's open buy orders (in Pyas). */
 export async function sumOpenBuyReservations(tx: Transaction, userId: string): Promise<number> {
   const result = await tx.query<{ total: string | number | null }>(

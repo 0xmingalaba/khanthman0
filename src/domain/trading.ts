@@ -32,7 +32,7 @@ import {
 } from "@/src/domain/ledger";
 import { costOf, price as assertPrice, shares as assertShares } from "@/src/lib/money";
 import { isTradingAllowed, type MarketStatus } from "@/src/domain/market-lifecycle";
-import { releasableCash, reallocateCashReservations } from "@/src/domain/reservations";
+import { lockCashPools, releasableCash, reallocateCashReservations } from "@/src/domain/reservations";
 
 export type Side = "YES" | "NO";
 export type Action = "BUY" | "SELL";
@@ -212,6 +212,12 @@ export async function placeOrder(db: Database, input: PlaceOrderInput): Promise<
     async (tx) => {
       await lockTradableMarket(tx, input.marketId, now);
 
+      // Placing a BUY grows this user's reservation pool and inserts an open order that
+      // reallocation will later lock, so it takes the same pool lock as settlement and
+      // cancellation. Taking it here keeps one consistent first lock across the three
+      // mutations that touch the pool.
+      await lockCashPools(tx, [input.userId]);
+
       const cashAvailable = await ensureAccount(tx, { type: "user", id: input.userId }, PYA, "cash_available");
       const cashReserved = await ensureAccount(tx, { type: "user", id: input.userId }, PYA, "cash_reserved");
       const asset = shareAsset(input.marketId, input.side);
@@ -292,6 +298,10 @@ export async function cancelOrder(
       requestHash: requestFingerprint({ orderId: input.orderId }),
     },
     async (tx) => {
+      // FIRST lock. Cancellation reads and rewrites this user's reservation pool, so it
+      // must take the same pool lock settlement takes (see reservations.ts).
+      await lockCashPools(tx, [input.userId]);
+
       const found = await tx.query<OrderRow>(
         `SELECT ${ORDER_COLUMNS} FROM orders WHERE id = $1 FOR UPDATE`,
         [input.orderId]
@@ -417,6 +427,19 @@ export async function settleTrade(
 ): Promise<{ tradeId: string; journalId: string; pricePya: number; quantity: number }> {
   const quantity = assertShares(input.quantity);
 
+  // FIRST locks in this transaction. Settlement rewrites BOTH users' reservation pools
+  // (the buyer's via reallocateCashReservations, the seller's via share escrow), and
+  // reallocation locks every open buy order of the buyer. Taking the pools up front, in
+  // sorted user order, is what prevents the lock cycle documented in reservations.ts.
+  const parties = await tx.query<{ buyer_id: string; seller_id: string }>(
+    `SELECT b.user_id AS buyer_id, s.user_id AS seller_id
+       FROM orders b, orders s
+      WHERE b.id = $1 AND s.id = $2`,
+    [input.buyOrderId, input.sellOrderId]
+  );
+  if (parties.rows.length === 0) throw notFound("Order");
+  await lockCashPools(tx, [parties.rows[0].buyer_id, parties.rows[0].seller_id]);
+
   const orders = await tx.query<OrderRow>(
     `SELECT ${ORDER_COLUMNS} FROM orders
       WHERE id = $1 OR id = $2
@@ -537,8 +560,11 @@ export async function settleTrade(
     );
   }
 
-  // Keep every open buy order's share of the cash pool true to the ledger.
+  // Keep every open buy order's share of the cash pool true to the ledger. Both users
+  // are reallocated, not just the buyer: the seller's own resting buy orders share a
+  // pool that this settlement has just moved value through.
   await reallocateCashReservations(tx, buy.user_id);
+  await reallocateCashReservations(tx, sell.user_id);
 
   await applyCostBasis(tx, {
     buyerId: buy.user_id,
