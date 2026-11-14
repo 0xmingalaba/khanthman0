@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Typecheck, test and build
+    runs-on: ubuntu-latest
+    # A real PostgreSQL server for the concurrency suite. PGlite cannot prove row-lock
+    # contention (single connection, serialised transactions), so the job runs against
+    # the same engine shape as production.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mingala
+          POSTGRES_PASSWORD: mingala
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mingala"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # The suite creates and drops its own databases on this server.
+      TEST_DATABASE_URL: postgresql://mingala:mingala@127.0.0.1:5432/postgres
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Production dependency security audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: TypeScript typecheck
+        run: npm run typecheck
+      - name: Unit tests (money, ledger math, lifecycle, auth primitives)
+        run: npm test
+      - name: Integration tests (SQL semantics via PGlite)
+        run: npm run test:integration
+      - name: Concurrency tests (real PostgreSQL, multiple connections)
+        # This step must fail whenever the suite does not genuinely run and pass.
+        #
+        # Two defects were removed from the previous version:
+        #   1. `npm run test:postgres 2>&1 | tee log` returned tee's exit status, so a
+        #      failing suite produced a green step. Demonstrated: a deliberately
+        #      failing test printing "# fail 1" still exited 0.
+        #   2. `grep "# skipped [1-9]"` never fired. With TEST_DATABASE_URL unset the
+        #      suites use describe.skip, and the spec summary then reads
+        #      "tests 0 / skipped 0" because no individual test was skipped.
+        #
+        # scripts/postgres-gate.ts replaces both. It runs the suite with the built-in
+        # JUnit reporter, then asserts: the URL is configured, at least one test
+        # actually executed, no test was skipped, and none failed. Exit codes are
+        # distinct (1 fail, 2 no config, 3 nothing ran, 4 skipped, 5 crash, 6 no
+        # report) so the log identifies the cause without reading prose.
+        #
+        # `shell: bash` + `set -euo pipefail` is retained as defence in depth: nothing
+        # in this step pipes the test command, but a future edit that reintroduces a
+        # pipe must not be able to swallow the exit status again.
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${TEST_DATABASE_URL:-}" || {
+            echo "::error::TEST_DATABASE_URL is not set for the PostgreSQL suite."
+            exit 2
+          }
+          npm run test:postgres:gate
+      - name: PostgreSQL gate self-verification (real processes)
+        # Correction 5: the gate's own behaviour is proof, not an assumption. This runs
+        # the gate as a real child process, against the real test runner, nine times:
+        #
+        #   A. passing suite                      -> exit 0
+        #   B. deliberately failing test          -> exit 1  (test failures)
+        #   C. all tests skipped                  -> exit 3  (nothing executed)
+        #   D. TEST_DATABASE_URL unset            -> exit 2  (misconfigured)
+        #   E. runner fails, no report written    -> exit 6  (report untrusted)
+        #   F. crash after every test passed      -> exit 5  (runner crashed)
+        #   G. seam set to 0 on a failing suite   -> exit 1  (cannot mask a failure)
+        #   H/H2. invalid seam values             -> exit 1  (ignored, verdict stands)
+        #
+        # Synthetic suites for B, C and F are written to the OS temp directory and removed
+        # afterwards; nothing deliberate enters tests/. TEST_DATABASE_URL comes from the
+        # job-level env, so no per-step assignment is needed.
+        #
+        # Case F uses the gate's PG_GATE_SIMULATE_RUNNER_EXIT seam because Node's junit
+        # reporter attributes every non-zero outcome it can observe to a <failure> on a
+        # recorded testcase, so the runner cannot produce "complete report, no failure,
+        # non-zero exit" on its own. The report in case F is genuine; only the exit status
+        # is substituted. See the header of scripts/verify-postgres-gate.mjs.
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run verify:postgres-gate
+      - name: Production build
+        run: npm run build
+      - name: Route and API smoke tests
+        env:
+          MINGALA_DB: pglite
+          TRUSTED_PROXY_HOPS: "0"
+        run: |
+          node --import tsx src/db/cli.ts seed
+          npm run start -- --hostname 127.0.0.1 > /tmp/mingala-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 45); do
+            if curl --silent --fail http://127.0.0.1:3000/my >/dev/null; then break; fi
+            sleep 1
+          done
+          my_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/my)
+          en_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/en)
+          root_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/)
+          markets_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/api/markets)
+          unauth_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            -X POST http://127.0.0.1:3000/api/orders -H 'content-type: application/json' \
+            -d '{"marketId":"00000000-0000-0000-0000-000000000000","side":"YES","action":"BUY","pricePya":50,"quantity":1,"idempotencyKey":"ci-smoke-key-01"}')
+          test "$my_status" = "200"
+          test "$en_status" = "200"
+          test "$root_status" = "307"
+          test "$markets_status" = "200"
+          # An unauthenticated order must be refused, never executed.
+          test "$unauth_status" = "401"
+          # The health endpoint must report a balanced ledger and leak no balances.
+          health_json=$(curl --silent --fail http://127.0.0.1:3000/api/health)
+          echo "$health_json"
+          echo "$health_json" | grep -q '"status":"ok"'
+          # The health payload reports *whether* the ledger balances, never amounts.
+          # Match concrete sensitive tokens, not the word "balanced".
+          if echo "$health_json" | grep -qiE '"balance"|availablePya|reservedPya|totalPya|postgres://|DATABASE_URL|password|@|accountId|userId'; then
+            echo "health endpoint leaked sensitive fields"
+            exit 1
+          fi
+          curl --silent --fail http://127.0.0.1:3000/my | grep -q "ဈေးကွက်"
+          curl --silent --fail http://127.0.0.1:3000/en | grep -q "THE MARKETPLACE"
