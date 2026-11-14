@@ -7,6 +7,7 @@ import {
   decideReportPath,
   defaultReportPath,
   parseJunit,
+  resolveRunnerExit,
   type Counts,
   type JunitReport,
 } from "@/scripts/postgres-gate";
@@ -106,9 +107,12 @@ describe("parseJunit — accepts everything Node's junit reporter really emits",
     assert.equal(parseJunit(xml).wellFormed, true);
   });
 
-  test("accepts self-closing tags written with a space", () => {
+  test("accepts self-closing tags with whitespace before the slash", () => {
+    // XML 1.0: EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'  -- the slash and '>' are
+    // adjacent, but whitespace is allowed before the slash.
     assert.equal(parseJunit(`<testsuites><testcase name="a" /></testsuites>`).wellFormed, true);
-    assert.equal(parseJunit(`<testsuites><testcase name="a" / ></testsuites>`).wellFormed, true);
+    assert.equal(parseJunit(`<testsuites><testcase name="a"/></testsuites>`).wellFormed, true);
+    assert.equal(parseJunit(`<testsuites><testcase name="a"\t/></testsuites>`).wellFormed, true);
   });
 
   test("accepts numeric character references and CDATA in text", () => {
@@ -714,6 +718,191 @@ describe("report path override — correction 3: never delete a caller's file", 
     if (d.ok) {
       assert.equal(d.owned, true);
       assert.equal(d.clearExisting, true);
+    }
+  });
+});
+
+describe("finding 1 — the simulated exit seam cannot mask a failure", () => {
+  /**
+   * The seam exists so a crashed runner can be simulated at process level. These tests
+   * pin the safety rules: a simulated value must be a non-zero integer, and the seam can
+   * never turn a non-zero runner exit into a pass.
+   */
+
+  test("a genuine non-zero child exit is never replaced by a simulated zero", () => {
+    for (const child of [1, 2, 5, 130, 139]) {
+      const seam = resolveRunnerExit(child, "0");
+      assert.equal(seam.exitCode, child, `child exit ${child} was replaced by 0`);
+      assert.match(seam.note!, /not permitted|must be non-zero/i);
+    }
+  });
+
+  test("zero is a no-op: it leaves a passing run passing", () => {
+    // A genuinely passing suite must stay passing: refusing the simulated zero must not
+    // itself fail the run. The safety property is that zero never REPLACES a non-zero
+    // child exit, not that a passing run is forced to fail.
+    const seam = resolveRunnerExit(0, "0");
+    assert.equal(seam.exitCode, 0);
+    assert.match(seam.note!, /not permitted/i, "the refusal must still be reported");
+  });
+
+  test("a valid non-zero value is applied", () => {
+    const seam = resolveRunnerExit(0, "139");
+    assert.equal(seam.exitCode, 139);
+    assert.match(seam.note!, /overrides the runner's real exit code 0/);
+  });
+
+  test("invalid values are ignored, not applied, and never fatal", () => {
+    for (const bad of ["abc", "1.5", "1e3", "0x5", "+3", "-1", "5.0", "NaN", "Infinity", "  ", "٣"]) {
+      const seam = resolveRunnerExit(0, bad);
+      assert.equal(seam.exitCode, 0, `invalid value ${JSON.stringify(bad)} was applied`);
+      assert.ok(seam.note, `invalid value ${JSON.stringify(bad)} produced no warning`);
+      assert.match(seam.note!, /ignoring/i);
+    }
+  });
+
+  test("an invalid value cannot rescue a non-zero child exit", () => {
+    for (const bad of ["0.0", "00.0", "abc", "0x0"]) {
+      const seam = resolveRunnerExit(1, bad);
+      assert.equal(seam.exitCode, 1, `child exit 1 was changed by ${bad}`);
+    }
+  });
+
+  test("out-of-range integers are rejected", () => {
+    const seam = resolveRunnerExit(0, "99999999999999999999");
+    assert.equal(seam.exitCode, 0);
+    assert.match(seam.note!, /out of range/i);
+  });
+
+  test("an unset seam changes nothing", () => {
+    for (const child of [0, 1, 7]) {
+      const seam = resolveRunnerExit(child, undefined);
+      assert.equal(seam.exitCode, child);
+      assert.equal(seam.note, null);
+    }
+  });
+
+  test("an empty seam is ignored with a warning", () => {
+    const seam = resolveRunnerExit(3, "");
+    assert.equal(seam.exitCode, 3);
+    assert.match(seam.note!, /empty/i);
+  });
+
+  test("the seam is order-preserving: it never lowers a non-zero exit to zero", () => {
+    // Exhaustive over a small grid: any (child, simulated) pair either leaves a non-zero
+    // child non-zero, or injects a non-zero value. Never 0 from a non-zero child.
+    for (let child = 0; child <= 3; child += 1) {
+      for (const sim of ["0", "1", "2", "139", "abc", ""]) {
+        const { exitCode } = resolveRunnerExit(child, sim);
+        if (child !== 0) {
+          assert.notEqual(exitCode, 0, `child=${child} sim=${sim} produced 0`);
+        }
+      }
+    }
+  });
+});
+
+describe("finding 2 — empty-element tag syntax", () => {
+  test("rejects <testcase / > with whitespace between slash and >", () => {
+    const parsed = parseJunit(`<testsuites><testcase name="a" / ></testsuites>`);
+    assert.equal(parsed.wellFormed, false);
+    assert.match(parsed.problem!, /invalid empty-element tag/i);
+    assert.equal(decide({ ...HEALTHY, report: parsed }).exitCode, EXIT.UNREADABLE_REPORT);
+  });
+
+  test("rejects any whitespace count between slash and >", () => {
+    for (const gap of [" ", "  ", "\t", "\n", " \t\n "]) {
+      const parsed = parseJunit(`<testsuites><testcase name="a" /${gap}></testsuites>`);
+      assert.equal(parsed.wellFormed, false, `accepted slash${JSON.stringify(gap)}>`);
+    }
+  });
+
+  test("accepts <testcase /> and <testcase/>", () => {
+    assert.equal(parseJunit(`<testsuites><testcase name="a" /></testsuites>`).wellFormed, true);
+    assert.equal(parseJunit(`<testsuites><testcase name="a"/></testsuites>`).wellFormed, true);
+  });
+
+  test("the slash must immediately precede >", () => {
+    // Same element, one character apart: legal then illegal.
+    assert.equal(parseJunit(`<testsuites><testcase name="a" /></testsuites>`).wellFormed, true);
+    assert.equal(parseJunit(`<testsuites><testcase name="a" / ></testsuites>`).wellFormed, false);
+  });
+
+  test("rejects a doubled slash and a slash on an end tag", () => {
+    for (const xml of [
+      `<testsuites><testcase name="a"//></testsuites>`,
+      `<testsuites><testcase name="a"></testcase/></testsuites>`,
+    ]) {
+      assert.equal(parseJunit(xml).wellFormed, false, `accepted ${xml}`);
+    }
+  });
+});
+
+describe("finding 3 — document boundaries are not normalised", () => {
+  test("rejects whitespace before the XML declaration", () => {
+    for (const ws of [" ", "\t", "\n", "\r\n", "  \t\n"]) {
+      const parsed = parseJunit(`${ws}<?xml version="1.0"?><testsuites><testcase name="a"/></testsuites>`);
+      assert.equal(parsed.wellFormed, false, `accepted leading ${JSON.stringify(ws)}`);
+      assert.match(parsed.problem!, /must be the very first thing/i);
+      assert.equal(decide({ ...HEALTHY, report: parsed }).exitCode, EXIT.UNREADABLE_REPORT);
+    }
+  });
+
+  test("accepts a declaration at offset 0", () => {
+    const xml = `<?xml version="1.0" encoding="utf-8"?><testsuites><testcase name="a"/></testsuites>`;
+    assert.equal(parseJunit(xml).wellFormed, true);
+  });
+
+  test("rejects non-XML whitespace outside the root", () => {
+    // Vertical tab and form feed are not XML `S`; `.trim()` used to discard them before
+    // validation, which hid the violation entirely.
+    for (const ws of ["\u000B", "\u000C"]) {
+      const before = parseJunit(`${ws}<testsuites><testcase name="a"/></testsuites>`);
+      assert.equal(before.wellFormed, false, `accepted ${JSON.stringify(ws)} before root`);
+
+      const after = parseJunit(`<testsuites><testcase name="a"/></testsuites>${ws}`);
+      assert.equal(after.wellFormed, false, `accepted ${JSON.stringify(ws)} after root`);
+    }
+  });
+
+  test("accepts legal XML whitespace around the root", () => {
+    for (const ws of ["\n", "\t", "\r\n", "  \t "]) {
+      const xml = `${ws}<testsuites><testcase name="a"/></testsuites>${ws}`;
+      assert.equal(parseJunit(xml).wellFormed, true, `rejected legal whitespace ${JSON.stringify(ws)}`);
+    }
+  });
+
+  test("preserves a byte-order mark and still accepts the document", () => {
+    const withDecl = `\uFEFF<?xml version="1.0"?><testsuites><testcase name="a"/></testsuites>`;
+    const withoutDecl = `\uFEFF<testsuites><testcase name="a"/></testsuites>`;
+    assert.equal(parseJunit(withDecl).wellFormed, true);
+    assert.equal(parseJunit(withoutDecl).wellFormed, true);
+  });
+
+  test("a byte-order mark does not excuse whitespace before the declaration", () => {
+    const xml = `\uFEFF  <?xml version="1.0"?><testsuites><testcase name="a"/></testsuites>`;
+    assert.equal(parseJunit(xml).wellFormed, false);
+  });
+
+  test("rejects a declaration that appears after a comment", () => {
+    const xml = `<!-- c --><?xml version="1.0"?><testsuites><testcase name="a"/></testsuites>`;
+    const parsed = parseJunit(xml);
+    assert.equal(parsed.wellFormed, false);
+    assert.match(parsed.problem!, /processing instruction/i);
+  });
+
+  test("rejects trailing content after the root even when whitespace-like", () => {
+    for (const junk of ["x", "\u0000", "\u00A0"]) {
+      const parsed = parseJunit(`<testsuites><testcase name="a"/></testsuites>${junk}`);
+      assert.equal(parsed.wellFormed, false, `accepted trailing ${JSON.stringify(junk)}`);
+    }
+  });
+
+  test("still rejects an empty or whitespace-only document", () => {
+    for (const doc of ["", "   ", "\n\t\r\n", " "]) {
+      const parsed = parseJunit(doc);
+      assert.equal(parsed.wellFormed, false);
+      assert.match(parsed.problem!, /empty/i);
     }
   });
 });

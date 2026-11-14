@@ -83,7 +83,7 @@ jobs:
           npm run test:postgres:gate
       - name: PostgreSQL gate self-verification (real processes)
         # Correction 5: the gate's own behaviour is proof, not an assumption. This runs
-        # the gate as a real child process, against the real test runner, six times:
+        # the gate as a real child process, against the real test runner, nine times:
         #
         #   A. passing suite                      -> exit 0
         #   B. deliberately failing test          -> exit 1  (test failures)
@@ -91,6 +91,8 @@ jobs:
         #   D. TEST_DATABASE_URL unset            -> exit 2  (misconfigured)
         #   E. runner fails, no report written    -> exit 6  (report untrusted)
         #   F. crash after every test passed      -> exit 5  (runner crashed)
+        #   G. seam set to 0 on a failing suite   -> exit 1  (cannot mask a failure)
+        #   H/H2. invalid seam values             -> exit 1  (ignored, verdict stands)
         #
         # Synthetic suites for B, C and F are written to the OS temp directory and removed
         # afterwards; nothing deliberate enters tests/. TEST_DATABASE_URL comes from the

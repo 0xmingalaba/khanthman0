@@ -447,14 +447,40 @@ function parseXml(text: string): XmlParse {
     const textChunk = lt === -1 ? text.slice(offset) : text.slice(offset, lt);
     const chunkLine = lineAt(text, offset);
 
-    if (stack.length === 0 && root === null && textChunk.trim().length > 0) {
-      return fail(`line ${chunkLine}: content before the report's root element.`);
+    if (stack.length === 0 && root === null && textChunk.length > 0) {
+      // Only XML `S` is allowed before the root (Misc*: comments, PIs, whitespace).
+      // Anything else -- including JS's idea of whitespace such as a vertical tab or a
+      // form feed -- is content outside the root and is rejected. `.trim()` previously
+      // hid this by discarding such characters before they could be examined.
+      for (let i = 0; i < textChunk.length; i += 1) {
+        if (!isXmlSpace(textChunk[i]!)) {
+          const bad = textChunk.charCodeAt(i);
+          return fail(
+            `line ${lineAt(text, offset + i)}: character U+${bad
+              .toString(16)
+              .toUpperCase()
+              .padStart(4, "0")} appears before the root element. Only legal XML ` +
+              "whitespace may precede it."
+          );
+        }
+      }
     }
-    if (stack.length === 0 && root !== null && textChunk.trim().length > 0) {
-      return fail(
-        `line ${chunkLine}: unexpected content after the closing root element. ` +
-          "A document may have only one root."
-      );
+    if (stack.length === 0 && root !== null && textChunk.length > 0) {
+      // Only XML `S` may follow the root (Misc*). JavaScript's `.trim()` also treats
+      // U+00A0 and friends as whitespace, so a non-breaking space here was previously
+      // discarded instead of rejected -- it is content outside the root, not whitespace.
+      for (let i = 0; i < textChunk.length; i += 1) {
+        if (!isXmlSpace(textChunk[i]!)) {
+          const bad = textChunk.charCodeAt(i);
+          return fail(
+            `line ${lineAt(text, offset + i)}: character U+${bad
+              .toString(16)
+              .toUpperCase()
+              .padStart(4, "0")} appears after the closing root element. Only legal ` +
+              "XML whitespace may follow it, and a document may have only one root."
+          );
+        }
+      }
     }
     if (stack.length > 0) checkCharacterData(textChunk, chunkLine);
 
@@ -544,14 +570,24 @@ function parseXml(text: string): XmlParse {
 
     // Opening or self-closing tag.
     //
-    // XML allows whitespace before the closing `>`, so `<tag />` and `<tag / >` are both
-    // legal and both accepted. The self-closing slash must be the final non-space
-    // character; any other stray slash is caught by the attribute scan as malformed
-    // markup, so `<tag//>` and `</tag/>` are rejected structurally, not by pattern.
+    // EMPTY-ELEMENT TAG SYNTAX, per XML 1.0 section 3.1:
+    //
+    //     EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'
+    //
+    // The `/` and the `>` are adjacent. Whitespace is allowed BEFORE the slash (`<a />`)
+    // but not BETWEEN the slash and the `>` — `<a / >` is not well-formed. The previous
+    // implementation stripped trailing whitespace before testing for the slash, which
+    // wrongly accepted `<a / >`. The check is now made on the raw tag text.
     const inner0 = raw.slice(1, -1);
+    if (/\/\s+>$/.test(raw)) {
+      return fail(
+        `line ${line}: invalid empty-element tag "${raw.trim()}". The "/" must ` +
+          "immediately precede \">\"; write <name/> or <name />."
+      );
+    }
     const trimmedRight = inner0.replace(/[ \t\r\n]+$/, "");
     const selfClosing = trimmedRight.endsWith("/");
-    const inner = selfClosing ? trimmedRight.slice(0, -1) : inner0;
+    const inner = selfClosing ? trimmedRight.slice(0, -1) : trimmedRight;
 
     const nameMatch = /^([A-Za-z_][A-Za-z0-9_.:-]*)/.exec(inner);
     if (!nameMatch) {
@@ -761,16 +797,43 @@ function validateJunitStructure(root: XmlElement): string | null {
  * trustworthy counts.
  */
 export function parseJunit(xml: string): JunitReport {
-  // A leading UTF-8 byte-order mark is legal in XML; the runner does not emit one, but
-  // stripping it is harmless and more correct than treating it as content.
-  const text = (xml.charCodeAt(0) === 0xfeff ? xml.slice(1) : xml).trim();
   const reject = (problem: string): JunitReport => ({
     wellFormed: false,
     counts: EMPTY_COUNTS,
     problem,
   });
 
-  if (text.length === 0) return reject("JUnit report is empty.");
+  // DOCUMENT BOUNDARIES ARE NOT NORMALISED.
+  //
+  // A byte-order mark is stripped because XML 1.0 appendix F permits one at the very
+  // start of an entity, and a decoder may leave it in the string. Nothing else is
+  // stripped: no trim(), no whitespace collapsing.
+  //
+  // An earlier version called `.trim()` on the whole document, which was wrong in two
+  // distinct ways. It silently discarded characters OUTSIDE the root that XML forbids
+  // (a vertical tab, say) before validation could see them, and it moved an XML
+  // declaration that was preceded by whitespace into a legal position, hiding the fact
+  // that `<?xml ...?>` must be the very first thing in the document. Both rules are now
+  // enforced on the raw text.
+  const withoutBom = xml.charCodeAt(0) === 0xfeff ? xml.slice(1) : xml;
+
+  if (withoutBom.length === 0) return reject("JUnit report is empty.");
+  if (withoutBom.trim().length === 0) {
+    return reject("JUnit report is empty (it contains only whitespace).");
+  }
+
+  // A declaration must start at offset 0. Whitespace before it is not legal, because the
+  // XML declaration is part of the prolog and must begin the document.
+  const leadingDecl = /^[ \t\r\n]+(<\?xml(?=[ \t\r\n?]))/.exec(withoutBom);
+  if (leadingDecl) {
+    const line = lineAt(withoutBom, leadingDecl[0].length - leadingDecl[1]!.length);
+    return reject(
+      `line ${line}: the XML declaration must be the very first thing in the document; ` +
+        "whitespace before <?xml is not allowed."
+    );
+  }
+
+  const text = withoutBom;
 
   // Every character in the document must satisfy the XML `Char` production. Doing this
   // once up front means no later stage has to defend against NULs or lone surrogates.
@@ -945,6 +1008,97 @@ export function defaultReportPath(): string {
 }
 
 /**
+ * Resolve the exit code the gate classifies, with the crash-classification test seam.
+ *
+ * WHY A SEAM IS NEEDED. Node's runner attributes every non-zero outcome it can observe to
+ * a recorded testcase: a throwing `after` hook, a late uncaught throw, a late rejection,
+ * process.exitCode set inside a test, and even process.abort() all produce exit 1 with a
+ * synthetic <failure> (verified). The reporter also only flushes at exit, so there is no
+ * window to kill the runner after the report is written. "Complete report, no recorded
+ * failure, non-zero exit" is therefore unreachable from the runner itself.
+ *
+ * SAFETY RULES. A test seam that can turn a failing run green would be worse than no
+ * test at all, so the substitution is constrained rather than trusted:
+ *
+ *   1. The simulated value must be a finite integer, and NOT zero. `0` is rejected
+ *      explicitly, because substituting 0 for a genuine non-zero child exit is exactly
+ *      the "turn a crash into a pass" failure this gate exists to prevent.
+ *   2. Digit-only syntax is required (`"5"`, not `"5.0"`, `" 5"`, `"1e3"`, `"0x5"`), so
+ *      a malformed value cannot be coerced into a surprising number by Number().
+ *   3. An invalid value is IGNORED with a warning, never applied and never fatal — a
+ *      mistyped test variable must not change a verdict on its own.
+ *   4. The returned code is non-zero whenever the child's was non-zero. The seam can
+ *      therefore only make a verdict WORSE (inject a crash where there was none), never
+ *      better, so it cannot mask a real failure.
+ *
+ * Pure, so every branch is unit-testable.
+ */
+export function resolveRunnerExit(
+  childExitCode: number,
+  simulated: string | undefined
+): { exitCode: number; note: string | null } {
+  if (simulated === undefined) return { exitCode: childExitCode, note: null };
+
+  const trimmed = simulated.trim();
+  if (trimmed.length === 0) {
+    return {
+      exitCode: childExitCode,
+      note:
+        "warning: PG_GATE_SIMULATE_RUNNER_EXIT is set but empty; ignoring it and using " +
+        `the runner's real exit code ${childExitCode}.`,
+    };
+  }
+
+  // Digit-only: rejects "-1", "1.5", "1e3", "0x5", "+3", "abc" and whitespace-padded
+  // numbers without relying on Number() coercion, which would accept most of them.
+  if (!/^\d+$/.test(trimmed)) {
+    return {
+      exitCode: childExitCode,
+      note:
+        `warning: PG_GATE_SIMULATE_RUNNER_EXIT=${JSON.stringify(simulated)} is not a ` +
+        "non-negative integer; ignoring it. A test seam must not change a verdict " +
+        "through a malformed value.",
+    };
+  }
+
+  const value = Number(trimmed);
+  if (!Number.isSafeInteger(value)) {
+    return {
+      exitCode: childExitCode,
+      note: `warning: PG_GATE_SIMULATE_RUNNER_EXIT=${trimmed} is out of range; ignoring it.`,
+    };
+  }
+
+  // Rule 1: zero must never replace a real exit code. It would either be a no-op on a
+  // passing run or, far worse, hide a genuine non-zero child exit.
+  if (value === 0) {
+    return {
+      exitCode: childExitCode,
+      note:
+        "warning: PG_GATE_SIMULATE_RUNNER_EXIT=0 is not permitted — a simulated exit " +
+        "code must be non-zero, and zero can never replace a real runner result. " +
+        `Using the runner's real exit code ${childExitCode}.`,
+    };
+  }
+
+  // Rule 4: a non-zero child exit can never be reported as a zero exit. Unreachable
+  // given rule 1, but stated as an assertion so a future edit cannot break it silently.
+  if (childExitCode !== 0 && value === 0) {
+    return {
+      exitCode: childExitCode,
+      note: "warning: refusing to replace a non-zero runner exit with zero.",
+    };
+  }
+
+  return {
+    exitCode: value,
+    note:
+      `note: PG_GATE_SIMULATE_RUNNER_EXIT=${trimmed} overrides the runner's real exit ` +
+      `code ${childExitCode} for crash-classification testing.`,
+  };
+}
+
+/**
  * Decide where the JUnit report goes, and whether this run may write there.
  *
  * The default is a per-run unique temporary path, which this run owns and deletes.
@@ -1095,29 +1249,10 @@ async function main(): Promise<void> {
     child.on("error", () => resolve(1));
   });
 
-  // Test seam for the crash-classification path (exit 5).
-  //
-  // Node's runner attributes every non-zero outcome it can observe to a recorded
-  // testcase: a throwing `after` hook, a late uncaught throw, a late rejection,
-  // process.exitCode set inside a test, and even process.abort() all produce exit 1 with
-  // a synthetic <failure> (verified). So "complete report, no recorded failure, non-zero
-  // exit" cannot be produced by the runner itself, and the branch would otherwise be
-  // unreachable in a process-level test.
-  //
-  // PG_GATE_SIMULATE_RUNNER_EXIT lets a test assert that a crashed child is never
-  // reported as passing. It is inert unless set, and it can only ever make the verdict
-  // WORSE (a non-zero exit), never better, so it cannot mask a real failure.
-  const simulatedExit = process.env.PG_GATE_SIMULATE_RUNNER_EXIT;
-  const effectiveExitCode =
-    simulatedExit !== undefined && simulatedExit.trim().length > 0
-      ? Number(simulatedExit)
-      : childExitCode;
-  if (effectiveExitCode !== childExitCode) {
-    console.error(
-      `[postgres-gate] note: PG_GATE_SIMULATE_RUNNER_EXIT=${simulatedExit} overrides the ` +
-        `runner's real exit code ${childExitCode} for crash-classification testing.`
-    );
-  }
+  // Test seam for the crash-classification path (exit 5). See resolveRunnerExit().
+  const seam = resolveRunnerExit(childExitCode, process.env.PG_GATE_SIMULATE_RUNNER_EXIT);
+  const effectiveExitCode = seam.exitCode;
+  if (seam.note) console.error(`[postgres-gate] ${seam.note}`);
 
   let reportReadable = true;
   let report: JunitReport = {

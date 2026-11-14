@@ -12,6 +12,8 @@
  *   D. TEST_DATABASE_URL missing            -> exit 2 (misconfigured)
  *   E. runner exits non-zero, no report     -> exit 6 (report cannot be trusted)
  *   F. crashed runner, all tests recorded passing -> exit 5 (runner crashed)
+ *   G. seam set to 0 on a FAILING suite         -> exit 1 (seam cannot mask a failure)
+ *   H. seam set to an invalid value             -> real verdict preserved, warned
  *
  * Case E reproduces the exact shape that motivated correction 1: the runner fails
  * without leaving a readable JUnit file (a suite path that does not resolve). The
@@ -156,6 +158,19 @@ async function main() {
       passing
     );
     check("F. crashed runner after all tests passed -> exit 5", 5, f.code, f.out);
+    // G. The seam must never mask a real failure. The suite genuinely fails; the seam
+    // asks for a simulated exit of 0, which is refused. The verdict must stay "test
+    // failures" (1) -- NOT 0 (masked) and NOT 5 (misclassified as a crash).
+    const g = await runGate({ PG_GATE_SIMULATE_RUNNER_EXIT: "0" }, failing);
+    check("G. seam 0 on a failing suite cannot mask it -> exit 1", 1, g.code, g.out);
+
+    // H. An invalid seam value is ignored with a warning; the real verdict stands.
+    const h = await runGate({ PG_GATE_SIMULATE_RUNNER_EXIT: "not-a-number" }, failing);
+    check("H. invalid seam value ignored, real verdict kept -> exit 1", 1, h.code, h.out);
+
+    // H2. A non-zero invalid value must not rescue a failing run either.
+    const h2 = await runGate({ PG_GATE_SIMULATE_RUNNER_EXIT: "0.0" }, failing);
+    check("H2. seam 0.0 ignored on a failing suite -> exit 1", 1, h2.code, h2.out);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
