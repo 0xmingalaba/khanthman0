@@ -102,4 +102,6 @@ jobs:
             exit 1
           fi
           curl --silent --fail http://127.0.0.1:3000/my | grep -q "ဈေးကွက်"
-          curl --silent --fail http://127.0.0.1:3000/en | grep -q "THE MARKETPLACE"
+          # The English hero eyebrow is "A MARKETPLACE FOR WHAT'S NEXT"
+          # (src/i18n/dictionary.ts). Match the real rendered copy.
+          curl --silent --fail http://127.0.0.1:3000/en | grep -q "MARKETPLACE FOR WHAT"
