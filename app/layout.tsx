@@ -5,9 +5,9 @@ import "@fontsource/noto-sans-myanmar/600.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mingala — Myanmar Prediction Market",
-  description: "Explore questions about the future with Mingala Prediction Market. Virtual credits only.",
-  applicationName: "Mingala",
+  title: "Nan Htauk Prediction Market",
+  description: "Explore questions about the future with Nan Htauk Prediction Market. Virtual credits only.",
+  applicationName: "Nan Htauk",
 };
 
 export const viewport: Viewport = {

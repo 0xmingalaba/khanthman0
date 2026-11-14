@@ -1,4 +1,4 @@
-# Mingala — Production Readiness Checklist
+# Nan Htauk Prediction Market — Production Readiness Checklist
 
 Status as of this branch. Nothing here has been deployed, and deployment requires explicit
 owner approval.

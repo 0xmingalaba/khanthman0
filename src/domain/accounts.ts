@@ -1,7 +1,7 @@
 /**
  * Account creation and the virtual credit grant.
  *
- * Virtual credits only. Mingala issues 10,000 MMK (1,000,000 Pyas) of play money
+ * Virtual credits only. Nan Htauk issues 10,000 MMK (1,000,000 Pyas) of play money
  * to each new account. This is not a deposit, has no cash value, and is recorded
  * as a balanced journal against `system_equity` so the ledger stays reconciled.
  */

@@ -142,7 +142,7 @@ html[lang="my"] .position-market strong, html[lang="my"] .activity-row strong { 
 }
 
 
-/* Mingala market-terminal redesign: familiar prediction-market information hierarchy, original brand styling. */
+/* Nan Htauk market-terminal redesign: familiar prediction-market information hierarchy, original brand styling. */
 :root{--ink:#182b31;--muted:#667780;--paper:#f5f7f8;--line:#e6ebed;--green:#087d69;--green-dark:#056452}
 html,body{background:#f5f7f8}
 .app-shell{max-width:none;min-height:100vh;overflow:visible}
@@ -416,7 +416,7 @@ html[lang="my"] .market-outcomes span{font-size:11px}
 }
 
  
-/* Mingala global navigation: brand, search, How it works and account actions. */
+/* Nan Htauk global navigation: brand, search, How it works and account actions. */
 .topbar{display:flex;align-items:center;justify-content:flex-start;gap:clamp(10px,1.35vw,20px);height:68px;padding:0 clamp(18px,4vw,64px);white-space:nowrap}
 .topbar>.brand{gap:10px}
 .topbar .brand-mark{width:34px;height:34px;flex:none}
@@ -485,7 +485,7 @@ html[lang="my"] .market-outcomes span{font-size:11px}
 .header-feedback button:hover{color:#4f3b17}
 
 
-/* Mingala · open-space glass interface */
+/* Nan Htauk · open-space glass interface */
 :root{
   --ink:#edf5ff;--muted:#9aacc1;--paper:#050b18;--line:rgba(174,204,238,.15);
   --green:#6de0c0;--green-dark:#35b99a;--mint:#153b43;--gold:#f0cf88;
@@ -681,7 +681,7 @@ body:before{
 .market-card:focus-within h3{color:#eaf3ff}
 
 
-/* Featured spotlight + topics: Polymarket-inspired composition, Mingala identity */
+/* Featured spotlight + topics: Polymarket-inspired composition, Nan Htauk identity */
 .market-intro{display:none!important}
 .discovery-hero{
  max-width:1700px;margin:0 auto;padding:28px clamp(18px,5vw,76px) 30px;
@@ -752,7 +752,7 @@ body:before{
 @media(prefers-reduced-motion:reduce){.topic-arrow{transition:none}}
 
 
-/* Performance pass: preserve Mingala's space aesthetic without expensive live blur layers. */
+/* Performance pass: preserve Nan Htauk's space aesthetic without expensive live blur layers. */
 html {
   scroll-behavior: auto !important;
   scroll-padding-top: 84px;
