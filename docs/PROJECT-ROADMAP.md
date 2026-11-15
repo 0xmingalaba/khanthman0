@@ -180,7 +180,7 @@ The intended UX is similar in familiarity to Polymarket: select YES or NO, enter
 - [ ] Implement outcome proposal and review.
 - [ ] Implement dispute submission and handling.
 - [ ] Implement authorized final resolution.
-- [ ] Verify settlement of winning/losing positions through ledger journals under the approved MMK rules (existing `settleTrade` path in `src/domain/trading.ts` — do not re-implement); complete any genuine gaps.
+- [ ] Implement resolution payout: credit winning shares and nothing for losing shares through ledger journals after an authorized market resolution. This is NOT covered by `settleTrade` (which settles matched buyer/seller trade fills); `docs/RESOLUTION-DESIGN.md` (ADR-003) records resolution payout as unimplemented — the `escrow:payout` account exists and the payout journal is specified there pending decisions D1/D3 and the approved MMK specification.
 - [ ] Define and implement void/cancellation rules.
 - [ ] Make resolution history and evidence visible to users where appropriate.
 
