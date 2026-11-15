@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { effectiveNodeEnv } from "@/src/db/env-file";
 
 /**
@@ -18,9 +18,14 @@ import { effectiveNodeEnv } from "@/src/db/env-file";
  */
 
 const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
+// ESM import specifiers cannot be raw absolute paths ("D:\\dir\\file.ts" is not
+// a valid URL — es2021/ts loaders reject it as ERR_UNSUPPORTED_ESM_URL_SCHEME
+// on Windows). Convert to file:/// URLs, which are valid on every platform.
+const moduleSpecifier = (relativePath: string): string =>
+  pathToFileURL(join(REPO_ROOT, relativePath)).href;
 const CLI_PROBE = `
-import { loadEnvFiles } from ${JSON.stringify(join(REPO_ROOT, "src/db/env-file.ts"))};
-import { resolvePgliteDir, isPgliteMode } from ${JSON.stringify(join(REPO_ROOT, "src/db/config.ts"))};
+import { loadEnvFiles } from ${JSON.stringify(moduleSpecifier("src/db/env-file.ts"))};
+import { resolvePgliteDir, isPgliteMode } from ${JSON.stringify(moduleSpecifier("src/db/config.ts"))};
 const cwd = process.argv[1];
 try {
   const { loaded, nodeEnv } = loadEnvFiles(cwd);
@@ -75,6 +80,13 @@ function probe(cwd: string, env: Record<string, string | undefined>) {
 
 const UNSET = "<unset>";
 
+/**
+ * Normalize path separators for cross-platform assertions: `resolvePgliteDir`
+ * returns `join(baseDir, ".data", …)`, which is backslash-separated on Windows.
+ * Comparisons on the normalized form are equally strict on every platform.
+ */
+const toPosix = (value: string | undefined): string => (value ?? "").replace(/\\/g, "/");
+
 describe("effectiveNodeEnv", () => {
   test("explicit value wins; blank/unset default to development", () => {
     assert.equal(effectiveNodeEnv({}), "development");
@@ -92,7 +104,7 @@ describe("loadEnvFiles (child process, @next/env)", () => {
     assert.equal(result.get("NODE_ENV"), "development");
     assert.equal(result.get("LOADED") ?? "", "");
     assert.equal(result.keys.KHANTHMAN_DB, UNSET);
-    assert.match(result.get("RESOLVED_DIR") ?? "", /\.data\/khanthman$/);
+    assert.match(toPosix(result.get("RESOLVED_DIR")), /\.data\/khanthman$/);
   });
 
   test("unset NODE_ENV defaults to the development environment and loads .env.development.local", async () => {
@@ -206,6 +218,6 @@ describe("loadEnvFiles (child process, @next/env)", () => {
     );
     const result = probe(dir, {});
     assert.equal(result.code, 0, result.out);
-    assert.match(result.get("RESOLVED_DIR") ?? "", /\.data\/mingala$/);
+    assert.match(toPosix(result.get("RESOLVED_DIR")), /\.data\/mingala$/);
   });
 });
