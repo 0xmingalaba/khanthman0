@@ -1,4 +1,4 @@
-# Nan Htauk Prediction Market
+# Khant Hman Prediction Market
 
 A Myanmar-focused prediction market, built as a Next.js + TypeScript modular monolith on
 PostgreSQL. **Virtual credits only** — no real money, no deposits, no withdrawals.
@@ -50,8 +50,7 @@ The UI never presents any of the above as working.
 npm install
 
 # Option A: embedded database (no external service)
-MINGALA_DB=pglite npm run db:seed
-MINGALA_DB=pglite npm run dev
+npm run dev:pglite
 
 # Option B: real PostgreSQL
 cp .env.example .env.local     # then set DATABASE_URL
@@ -62,9 +61,8 @@ npm run dev
 
 Open http://localhost:3000 (redirects to `/my`).
 
-Seed accounts exist only when `db:seed` is run explicitly:
-`demo@dev.mingala.local`, `maker@dev.mingala.local`, `resolver@dev.mingala.local`,
-`admin@dev.mingala.local`, all with password `mingala-dev-password-2026`.
+Development seed accounts are created only when the seed command is run explicitly. They are
+for local development and must never be used in production.
 
 ## Validation
 
@@ -120,5 +118,5 @@ Key decisions:
 
 ## Licence and honesty note
 
-Nan Htauk is a simulation using virtual credits. It is not a licensed exchange, it does not handle
-real money, and the balances it shows have no cash value.
+Khant Hman is a simulation using virtual credits. It is not a licensed exchange, it does not
+handle real money, and the balances it shows have no cash value.
