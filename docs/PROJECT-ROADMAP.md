@@ -48,6 +48,7 @@ Build a Myanmar-focused prediction-market web application where users can browse
 | 0 | Product identity and project foundation | PR #8 merged into `main`; local Windows verification pending |
 | 1 | Get the existing webapp working locally | **Current priority** |
 | 2 | Complete the prediction-market MVP | Not yet accepted as complete |
+| 2A | UI/UX redesign (Polymarket-inspired visual system, compact trading interface, three trading modes) | Planned — specification-gated; not implemented |
 | 3 | Administration and operations | Planned |
 | 4 | PWA and Telegram distribution | Planned |
 | 5 | MMK payment operations | Blocked pending reviews and approval |
@@ -183,6 +184,81 @@ The intended UX is similar in familiarity to Polymarket: select YES or NO, enter
 - [ ] Implement resolution payout: credit winning shares and nothing for losing shares through ledger journals after an authorized market resolution. This is NOT covered by `settleTrade` (which settles matched buyer/seller trade fills); `docs/RESOLUTION-DESIGN.md` (ADR-003) records resolution payout as unimplemented — the `escrow:payout` account exists and the payout journal is specified there pending decisions D1/D3 and the approved MMK specification.
 - [ ] Define and implement void/cancellation rules.
 - [ ] Make resolution history and evidence visible to users where appropriate.
+
+## Phase 2A — UI/UX redesign (Polymarket-inspired)
+
+**Goal:** Replace the current ad-hoc styling with a coherent, compact, accessible visual system and a focused trading interface, inspired by Polymarket's usability. Khant Hman keeps its own product identity, rules and implementation; the inspiration is navigational and visual, not a clone.
+
+> **Status: PLANNED — NOT IMPLEMENTED.** Nothing in this phase exists in the repository yet. No checkbox may be ticked until the work is implemented and verified per the Definition of done in Section 4. This phase must not be mixed with the MMK-only migration, and must not introduce real-money deposits, withdrawals or payment integrations. The existing virtual-credit-only MVP scope is unchanged.
+
+### 2A.1 Polymarket-inspired visual redesign
+
+- [ ] Clean white background in Light Mode.
+- [ ] Flat, minimal layout; remove unnecessary card backgrounds, borders and shadows.
+- [ ] Clear typography, spacing and visual hierarchy.
+- [ ] Compact navigation and market listings.
+- [ ] Consistent design across homepage, market listings, market details, order ticket, portfolio, login and signup.
+- [ ] Responsive desktop and mobile layouts.
+- [ ] Add a user-accessible Light/Dark theme switching control (discoverable from the primary navigation; usable at common viewport sizes).
+- [ ] Dark Mode covers all major pages and components consistently (every surface listed above, plus order book, order ticket, forms, dialogs, loading/empty/error states and disclosures).
+
+### 2A.2 Compact trading interface
+
+- [ ] Redesign the order book to reduce unnecessary vertical space (denser rows, tighter spacing, clear best-bid/best-ask emphasis).
+- [ ] Redesign the order ticket to reduce unnecessary vertical space.
+- [ ] Keep the primary Place Order action accessible without excessive scrolling (at desktop and mobile viewport sizes).
+- [ ] Remove unnecessary test/demo UI elements from production surfaces.
+- [ ] Preserve clear, always-visible disclosures that credits are virtual and that transactions do not involve real money on every trading surface (order ticket, order review, portfolio).
+
+### 2A.3 Trading interaction modes
+
+Plan three distinct trading interaction modes with exactly these UI labels:
+
+- [ ] **1Tap** — one-tap interaction mode (new; unimplemented).
+- [ ] **Market** — market interaction mode (new; unimplemented).
+- [ ] **Limit** — the existing limit-order experience (implemented; UI may be regrouped/restyled under the new mode selector without changing behavior).
+
+**Specification gate (mandatory).** Before any implementation of **1Tap** or **Market**, and before any change to Limit's behavior, a separate product/technical specification must be written, reviewed and approved by the product owner. That specification must define, at minimum:
+
+- Market execution and available-liquidity behavior.
+- Price impact, slippage limits and confirmation rules.
+- 1Tap execution semantics and accidental-order safeguards.
+- Quote freshness and server-side validation.
+- Balance reservation and share handling.
+
+None of the above may be invented or assumed during design or implementation, and this roadmap deliberately does not specify them. Until the specification is approved, the only permitted work is: visual redesign of the Limit mode (unchanged behavior), mode-selector UI that exposes Limit only or disables/hides unimplemented modes, and the 2A.1–2A.2 work. Any execution behavior for 1Tap or Market without the approved specification is out of scope and must not be merged.
+
+### 2A.4 Dependencies and sequencing
+
+- [ ] Phase 1 exit criteria met (the existing app verified working locally on Windows 11) before restyling begins, so the redesign can be checked against a known-good baseline.
+- [ ] Design tokens (color, typography, spacing, radius, elevation) and the Light/Dark theme mechanism specified before per-page work starts.
+- [ ] A written page/component inventory for all target surfaces (homepage, listings, details, order ticket, order book, portfolio, login, signup) approved before implementation PRs begin.
+- [ ] The separate product/technical specification for 1Tap and Market approved before any work on those modes.
+- [ ] i18n parity maintained (English and Burmese) for every new string introduced.
+- [ ] Redesign verification plan defined up front (desktop and mobile viewport matrices; both themes; no financial-logic changes in any redesign PR).
+
+### 2A.5 Acceptance criteria (for future implementation)
+
+- [ ] Light Mode renders a clean white background with a flat, minimal layout across all target surfaces; unnecessary card backgrounds, borders and shadows are removed.
+- [ ] Dark Mode renders all major pages and components consistently, with no light-only leaks, unreadable text or mixed theming.
+- [ ] A user-accessible Light/Dark theme switch exists, works on every page, and persists the user's choice.
+- [ ] Desktop and mobile layouts are usable at common viewport sizes (including small phones and small laptops) without horizontal scrolling or clipped content.
+- [ ] Homepage, market listings, market details, order ticket, order book, portfolio, login and signup share one consistent design language.
+- [ ] The order ticket and order book are materially more compact than today; Place Order remains reachable without excessive scrolling on desktop and mobile.
+- [ ] No unnecessary test/demo UI elements remain on production surfaces.
+- [ ] Virtual-credit disclosures remain present and clear on every trading surface.
+- [ ] Limit order behavior, placement/cancellation flows and all ledger, trading, pricing and settlement logic are unchanged by the redesign; automated tests covering trading paths still pass unmodified (unit, integration).
+- [ ] **1Tap** and **Market** ship only after their specification is approved, implemented exactly as specified, and verified with explicit tests (execution semantics, safeguards, server-side validation) defined by that specification.
+- [ ] All new UI strings exist in both English and Burmese.
+
+### 2A.6 Explicit non-goals and boundaries
+
+- [ ] No mixing of this phase with the MMK-only migration (`docs/PROJECT-ROADMAP.md` Section 3 and Phase 2 trading tasks); currency/accounting rules are untouched here.
+- [ ] No real-money deposits, withdrawals, payouts or payment integrations are introduced (Phase 5 remains blocked).
+- [ ] No changes to ledger, trading math, balances, reservations, matching, resolution/payout or financial rules as part of the visual redesign; any such change requires separate approval.
+- [ ] No database schema, migration or seed changes.
+- [ ] No removal of virtual-credit labeling or any language implying real-money trading.
+- [ ] This phase does not expand the channel scope (web remains the target; PWA/Telegram remain Phase 4).
 
 ## Phase 3 — Administration and operations
 
@@ -343,6 +419,9 @@ These topics were discussed but are not finalized. Record the decision here when
 - [ ] MMK payment methods and operating partners (subject to legal/provider approval)?
 - [ ] Deposit/withdrawal limits and identity-verification requirements?
 - [ ] Public beta eligibility and launch criteria?
+- [ ] UI/UX redesign scheduling: when Phase 2A work starts and in what order (visual system, per-page redesign, compact trading interface)?
+- [ ] Light/Dark theme switching: OS-preference detection, manual toggle and persistence approach?
+- [ ] Trading interaction modes: approve the separate product/technical specification required before **1Tap** or **Market** implementation (execution semantics, liquidity behavior, slippage/confirmation rules, 1Tap safeguards, quote freshness, reservations)? Limit remains the only working mode until then.
 
 ## 6. Change history
 
@@ -353,3 +432,4 @@ These topics were discussed but are not finalized. Record the decision here when
 | 2026-11-15 | Product owner confirmed MMK (ကျပ်) as the sole currency across the platform. Removed Pya as a share denomination/subunit from the product specification; added whole-MMK pricing and a required legacy-unit migration/reconciliation task. No financial code or data changed. |
 | 2026-11-15 | Rebased onto post-PR-#8 `main` (`5c6f103`). Reframed the market-catalog task as verification of the existing database-backed implementation (`listMarkets` via `app/[locale]/page.tsx` and `/api/markets`), and the trading tasks as audit/adapt/verify of the existing implementation in `src/domain/trading.ts`; recorded that MMK-unit verification has not happened. Recorded PR #8's merge. No financial code or data changed. |
 | 2026-11-15 | Follow-up Codex review: reframed market discovery (categories, search, detail route), authentication rate limiting/CSRF and audit-log items as verification of existing implementations; moved the account-activity smoke check out of Phase 1 (no such view exists) to Phase 2. No code changed. |
+| 2026-11-15 | Added Phase 2A (UI/UX redesign): Polymarket-inspired visual system (flat, white Light Mode; consistent pages; responsive; user-accessible Light/Dark theme switching), compact trading interface, and the three trading interaction modes (**1Tap**, **Market**, **Limit**) behind an explicit specification gate for 1Tap and Market execution semantics. Dependencies and acceptance criteria recorded. Documentation only — no application code, schema, migration, API, trading or financial-rule changes; MMK migration unchanged and out of scope; nothing marked implemented. |
