@@ -187,9 +187,9 @@ The intended UX is similar in familiarity to Polymarket: select YES or NO, enter
 
 ## Phase 2A — UI/UX redesign (Polymarket-inspired)
 
-**Goal:** Replace the current ad-hoc styling with a coherent, compact, accessible visual system and a focused trading interface, inspired by Polymarket's usability. Khant Hman keeps its own product identity, rules and implementation; the inspiration is navigational and visual, not a clone.
+**Goal:** Replace the current ad-hoc styling with a coherent, compact, accessible visual system and a focused trading interface, inspired by Polymarket's usability. Khant Hman keeps its own product identity, rules and implementation; the inspiration is navigational and visual, not a clone. Phase 2A covers ordinary user-facing pages and functionality only: staff operations and Admin panels remain future scope under Phase 3 — Administration and operations — and must not be included in Phase 2A development.
 
-> **Status: PLANNED — NOT IMPLEMENTED.** Nothing in this phase exists in the repository yet. No checkbox may be ticked until the work is implemented and verified per the Definition of done in Section 4. This phase must not be mixed with the MMK-only migration, and must not introduce real-money deposits, withdrawals or payment integrations. The existing virtual-credit-only MVP scope is unchanged.
+> **Status: PLANNED — REDESIGN NOT IMPLEMENTED.** The Phase 2A redesign (visual system, compact interface, interaction modes) is not implemented; no checkbox may be ticked until the work is implemented and verified per the Definition of done in Section 4. The exception is the **Limit** trading functionality: it is already implemented in the repository and serves as the baseline that this redesign builds on — the redesign must not change its behavior. This phase covers ordinary user-facing pages and functionality only. This phase must not be mixed with the MMK-only migration, and must not introduce real-money deposits, withdrawals or payment integrations. The existing virtual-credit-only MVP scope is unchanged.
 
 ### 2A.1 Polymarket-inspired visual redesign
 
@@ -253,6 +253,7 @@ None of the above may be invented or assumed during design or implementation, an
 
 ### 2A.6 Explicit non-goals and boundaries
 
+- [ ] Ordinary user-facing pages and functionality only. Staff operations and Admin panels (dashboards, role/permission tooling, operational controls) are **not** part of Phase 2A; they remain future scope under Phase 3 — Administration and operations — and must not be included in current development.
 - [ ] No mixing of this phase with the MMK-only migration (`docs/PROJECT-ROADMAP.md` Section 3 and Phase 2 trading tasks); currency/accounting rules are untouched here.
 - [ ] No real-money deposits, withdrawals, payouts or payment integrations are introduced (Phase 5 remains blocked).
 - [ ] No changes to ledger, trading math, balances, reservations, matching, resolution/payout or financial rules as part of the visual redesign; any such change requires separate approval.
@@ -433,3 +434,4 @@ These topics were discussed but are not finalized. Record the decision here when
 | 2026-11-15 | Rebased onto post-PR-#8 `main` (`5c6f103`). Reframed the market-catalog task as verification of the existing database-backed implementation (`listMarkets` via `app/[locale]/page.tsx` and `/api/markets`), and the trading tasks as audit/adapt/verify of the existing implementation in `src/domain/trading.ts`; recorded that MMK-unit verification has not happened. Recorded PR #8's merge. No financial code or data changed. |
 | 2026-11-15 | Follow-up Codex review: reframed market discovery (categories, search, detail route), authentication rate limiting/CSRF and audit-log items as verification of existing implementations; moved the account-activity smoke check out of Phase 1 (no such view exists) to Phase 2. No code changed. |
 | 2026-11-15 | Added Phase 2A (UI/UX redesign): Polymarket-inspired visual system (flat, white Light Mode; consistent pages; responsive; user-accessible Light/Dark theme switching), compact trading interface, and the three trading interaction modes (**1Tap**, **Market**, **Limit**) behind an explicit specification gate for 1Tap and Market execution semantics. Dependencies and acceptance criteria recorded. Documentation only — no application code, schema, migration, API, trading or financial-rule changes; MMK migration unchanged and out of scope; nothing marked implemented. |
+| 2026-11-15 | Phase 2A clarifications (owner review of PR #12): Phase 2A covers ordinary user-facing pages and functionality only — staff operations and Admin panels remain future scope under Phase 3 and are excluded from current development; status banner clarified — the redesign is not implemented, while the existing Limit trading functionality is already implemented and is the baseline the redesign builds on (its behavior is unchanged by the redesign). Documentation only. |
