@@ -40,7 +40,7 @@ owner approval.
 
 | Was | Now |
 | --- | --- |
-| Rate limiting trusted the client-controlled leftmost `X-Forwarded-For`, so a forged header reset the bucket per request | Explicit trusted-proxy hop count (right-anchored), plus a per-account auth limit. Verified end-to-end: rotating a forged header no longer bypasses the login limit. See `docs/DEPLOYMENT.md`. |
+| Rate limiting trusted the client-controlled leftmost `X-Forwarded-For`, so a forged header reset the bucket per request | Explicit immediate-peer allowlist (`TRUSTED_PROXY_CIDRS`) plus right-anchored hop count; forwarded headers are ignored from untrusted peers. A per-account auth limit remains. Regression tests cover rotating forged headers. See `docs/DEPLOYMENT.md`. |
 | `migrate()` nested a transaction around a file that already contained `BEGIN`/`COMMIT`; a failed migration left committed DDL behind (reproduced on PostgreSQL 16.2) | One transaction owner. The runner owns it, refuses files containing transaction control, and writes the version row inside the same transaction. Covered by `tests/integration/migrations.test.ts`. |
 | "Concurrency" was only tested on PGlite, which serialises all transactions — no row lock was ever contended | Real-PostgreSQL suite over multiple connections (`npm run test:postgres`), including a mutation check: removing `FOR UPDATE` makes it fail. |
 | Idempotency fingerprint was 32-bit FNV (collision-prone) and keys were never pruned | Truncated SHA-256 over canonical JSON; 24-hour retention with batched cleanup that never removes in-flight claims. |

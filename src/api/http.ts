@@ -29,6 +29,7 @@ import { getDatabase } from "@/src/db";
 import type { Database } from "@/src/db/executor";
 import { checkRateLimit, type RateLimitRule } from "@/src/lib/rate-limit";
 import { clientIpConfigFromEnv, resolveClientSubject } from "@/src/api/client-ip";
+import { getPeerAddress } from "@/src/api/peer-address";
 
 /** Route params for dynamic segments, e.g. `{ slug: string }`. */
 export type RouteParams = Record<string, string>;
@@ -47,13 +48,15 @@ export type HandlerContext<P extends RouteParams = RouteParams> = {
  * Rate-limit and audit subject for this request.
  *
  * Delegates to `resolveClientSubject`, which reads deployment configuration and
- * refuses to trust a client-supplied forwarding header. See src/api/client-ip.ts
- * for the trust model and why the leftmost X-Forwarded-For entry is unusable.
+ * refuses to trust a client-supplied forwarding header unless the captured TCP
+ * peer is an explicitly trusted proxy. See src/api/client-ip.ts for the trust
+ * model and src/api/peer-address.ts for how the socket address is captured.
  */
 export function clientIp(request: NextRequest): string {
   return resolveClientSubject(
     (name) => request.headers.get(name),
-    clientIpConfigFromEnv()
+    clientIpConfigFromEnv(),
+    getPeerAddress()
   );
 }
 
