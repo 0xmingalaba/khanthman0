@@ -96,8 +96,7 @@ Build a Myanmar-focused prediction-market web application where users can browse
 - [ ] Market listing and category/search controls work as currently implemented.
 - [ ] Market detail view works as currently implemented.
 - [ ] YES/NO trade or order-review interaction works as currently implemented.
-- [ ] Portfolio, positions and balance views work as currently implemented.
-- [ ] Activity / transaction history works as currently implemented.
+- [ ] Portfolio, positions and balance views work as currently implemented (balances, positions and open orders only — there is no account activity or transaction history view yet; that is tracked in Phase 2).
 - [ ] Refresh, browser back/forward and direct route loading work.
 - [ ] Loading, empty and error states are understandable.
 - [ ] No critical browser-console or server-terminal errors remain.
@@ -126,10 +125,10 @@ Previously discussed registration choices: phone-number registration and email r
 - [ ] Complete sign-in and sign-out.
 - [ ] Complete session persistence, expiry and revocation.
 - [ ] Add account recovery.
-- [ ] Add rate limiting and abuse protection to authentication endpoints.
-- [ ] Define and implement account-level lockout / throttling policy with safe recovery.
-- [ ] Add CSRF protection for cookie-authenticated state-changing requests.
-- [ ] Record sensitive authentication events in audit logs.
+- [ ] Verify the existing authentication rate limiting and abuse protection: a per-client limit in the shared `route()` wrapper plus per-account/per-address ceilings (`loginAccount` for login, `registerAccount` for registration) with hashed identity keys; confirm the limits actually engage. Keep a shared-store limiter as the multi-instance production follow-up — the current limiter is deliberately process-local (see the security note below).
+- [ ] Define and implement an account-level lockout / throttling policy with safe recovery on top of the existing per-account ceilings (lockout after sustained failure, safe recovery, no account-enumeration leaks).
+- [ ] Verify the existing CSRF defense for cookie-authenticated state-changing requests: the shared `route()` wrapper enforces a same-origin Origin/Referer check for mutations (SameSite=Lax is the first line); confirm cross-origin mutations are rejected and that no mutation endpoint bypasses the wrapper.
+- [ ] Verify sensitive authentication events are recorded in the audit log — registration (`auth.register`), login (`auth.login`) and logout (`auth.logout`) are currently recorded; complete any gaps for other sensitive events.
 
 Security requirements: password hashing, secure cookies/sessions, server-side authorization, input validation and protection against account enumeration and brute-force attempts. Before multi-instance production, replace or supplement process-local rate limiting with a shared store and verify trusted-proxy configuration.
 
@@ -137,9 +136,8 @@ Security requirements: password hashing, secure cookies/sessions, server-side au
 
 - [x] Market catalog is database-backed: the home page renders `initialMarkets` loaded via `listMarkets` (`app/[locale]/page.tsx`), and `HomeView` refreshes it through the markets API (`src/lib/api-client.ts` → `/api/markets` → `app/api/markets/route.ts` → `listMarkets`).
 - [ ] Verify the existing database-backed market catalog on the local Windows environment: the shown markets are live database content (never sample or demo data presented as live), category/search controls and the refresh path behave as implemented, and loading, empty and error states are understandable.
-- [ ] Implement market categories and category feeds.
-- [ ] Implement market search.
-- [ ] Implement a dedicated market detail route.
+- [ ] Verify the existing market discovery flow on the local Windows environment: category filter chips and search (client `HomeView` → `/api/markets?category=&q=` → `listMarkets` applies both filters), and the dedicated market detail route (`app/[locale]/market/[slug]/page.tsx` with `MarketView` rendering the question, description and resolution criteria).
+- [ ] Decide and specify any genuinely missing discovery behavior separately — for example dedicated per-category feed routes (not present; category filtering exists) — rather than re-implementing what exists.
 - [ ] Show market question, description and precise resolution criteria.
 - [ ] Show YES/NO prices and relevant market status.
 - [ ] Show close time, outcome status and resolution information.
@@ -171,7 +169,7 @@ The intended UX is similar in familiarity to Polymarket: select YES or NO, enter
 - [ ] Show share quantity and average cost.
 - [ ] Show current value where a reliable market price exists.
 - [ ] Show realized and unrealized P/L with clear definitions.
-- [ ] Show completed trades and account activity.
+- [ ] Show completed trades and account activity (activity/history view not yet implemented — PortfolioView currently shows balances, positions and open orders).
 - [ ] Keep balances consistent with the ledger.
 
 ### 2.5 Market lifecycle, resolution and disputes
@@ -182,7 +180,7 @@ The intended UX is similar in familiarity to Polymarket: select YES or NO, enter
 - [ ] Implement outcome proposal and review.
 - [ ] Implement dispute submission and handling.
 - [ ] Implement authorized final resolution.
-- [ ] Settle winning/losing positions through ledger journals.
+- [ ] Verify settlement of winning/losing positions through ledger journals under the approved MMK rules (existing `settleTrade` path in `src/domain/trading.ts` — do not re-implement); complete any genuine gaps.
 - [ ] Define and implement void/cancellation rules.
 - [ ] Make resolution history and evidence visible to users where appropriate.
 
@@ -354,3 +352,4 @@ These topics were discussed but are not finalized. Record the decision here when
 | 2026-11-15 | Incorporated independent review findings: added auth/CSRF/distributed-rate-limit hardening items and flagged the legacy Pya-based implementation for an explicit currency decision; no financial code or ledger behavior changed. |
 | 2026-11-15 | Product owner confirmed MMK (ကျပ်) as the sole currency across the platform. Removed Pya as a share denomination/subunit from the product specification; added whole-MMK pricing and a required legacy-unit migration/reconciliation task. No financial code or data changed. |
 | 2026-11-15 | Rebased onto post-PR-#8 `main` (`5c6f103`). Reframed the market-catalog task as verification of the existing database-backed implementation (`listMarkets` via `app/[locale]/page.tsx` and `/api/markets`), and the trading tasks as audit/adapt/verify of the existing implementation in `src/domain/trading.ts`; recorded that MMK-unit verification has not happened. Recorded PR #8's merge. No financial code or data changed. |
+| 2026-11-15 | Follow-up Codex review: reframed market discovery (categories, search, detail route), authentication rate limiting/CSRF and audit-log items as verification of existing implementations; moved the account-activity smoke check out of Phase 1 (no such view exists) to Phase 2. No code changed. |
