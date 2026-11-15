@@ -62,7 +62,7 @@ export function SiteHeader({
 
   return (
     <header className="topbar">
-      <Link className="brand" href={`/${locale}`} aria-label={t.brand.name}>
+      <Link className="brand" href={`/${locale}`} aria-label={t.brand.fullName}>
         <span className="brand-mark" aria-hidden="true">
           <span />
         </span>

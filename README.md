@@ -1,4 +1,4 @@
-# Mingala Prediction Market
+# Nan Htauk Prediction Market
 
 A Myanmar-focused prediction market, built as a Next.js + TypeScript modular monolith on
 PostgreSQL. **Virtual credits only** — no real money, no deposits, no withdrawals.
@@ -120,5 +120,5 @@ Key decisions:
 
 ## Licence and honesty note
 
-Mingala is a simulation using virtual credits. It is not a licensed exchange, it does not handle
+Nan Htauk is a simulation using virtual credits. It is not a licensed exchange, it does not handle
 real money, and the balances it shows have no cash value.

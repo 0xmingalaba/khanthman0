@@ -19,7 +19,7 @@ export async function generateMetadata({
   if (!isLocale(locale)) return {};
   const t = getDictionary(locale);
   return {
-    title: `${t.brand.name} — ${t.meta.tagline}`,
+    title: t.brand.fullName,
     description: t.meta.description,
     alternates: {
       canonical: `/${locale}`,
