@@ -46,9 +46,9 @@ async function main() {
   const command = process.argv[2];
   // Load the same .env files Next.js would, so this CLI and the dev server
   // resolve identical database configuration. Malformed files abort loudly.
-  const { loaded } = loadEnvFiles();
+  const { loaded, nodeEnv } = loadEnvFiles();
   if (loaded.length > 0) {
-    console.error(`[db-cli] loaded environment from ${loaded.join(", ")}`);
+    console.error(`[db-cli] loaded environment from ${loaded.join(", ")} (NODE_ENV=${nodeEnv})`);
   }
   const db = await open();
   try {

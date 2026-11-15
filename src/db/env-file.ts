@@ -1,118 +1,74 @@
 /**
- * .env file loading for the plain-Node database CLI.
+ * .env loading for the plain-Node database CLI — delegates to Next.js's
+ * official loader (`@next/env`), the exact implementation `next dev` uses,
+ * instead of maintaining a partial custom parser.
  *
- * Why this exists: Next.js loads `.env*` files into `process.env` for the app,
- * but `node --import tsx src/db/cli.ts` (the seed/migrate CLI) is a plain Node
- * process and sees only the real environment. Without this module the CLI and
- * `next dev` could resolve DIFFERENT PGlite directories — e.g. `.env.local`
- * pins `KHANTHMAN_PGLITE_DIR` for Next while the CLI discovers an existing
- * legacy `./.data/mingala` — so the seed writes to one database and the dev
- * server opens another, and existing data appears to have vanished.
+ * Why this exists: the seed/migrate CLI runs as a plain Node process and sees
+ * only the real environment, while `next dev` loads `.env*` files. Without
+ * this module the two could resolve DIFFERENT PGlite directories (e.g.
+ * `.env.local` pins `KHANTHMAN_PGLITE_DIR` for Next while the CLI discovers a
+ * legacy `./.data/mingala`) — the seed would write to one database and the
+ * dev server open another, and existing data would appear to be gone.
  *
- * This module loads the same files Next.js loads for a given NODE_ENV, in the
- * same precedence (lowest to highest, later wins):
+ * Semantics are @next/env's, i.e. exactly Next.js's:
+ *   - file selection follows NODE_ENV: `.env.<env>.local` > `.env.local` >
+ *     `.env.<env>` > `.env` for development/production, and `.env.test.local`
+ *     > `.env.test` > `.env` for test (test skips `.env.local`, like Next);
+ *   - when NODE_ENV is unset or blank the CLI defaults to the DEVELOPMENT
+ *     environment — matching `next dev`, which always forces development;
+ *     set NODE_ENV=production explicitly for production file selection;
+ *   - the real shell environment wins over every file;
+ *   - `$VAR` / `${VAR}` references expand (with `\$` for a literal dollar),
+ *     and `${VAR:-default}` provides a fallback.
  *
- *   .env  <  .env.<NODE_ENV>  <  .env.local  <  .env.<NODE_ENV>.local
+ * Read failures are fail-loud rather than Next's log-and-continue: the error
+ * is rethrown, so the CLI never proceeds against a silently mis-resolved
+ * configuration. (Missing files are not errors, exactly as in Next.)
  *
- * …and never overrides a variable that is already set in the real environment
- * (shell exports always win, exactly like Next). Blank values (`KEY=`) are
- * preserved as empty strings and are treated as unset by `./config.ts`.
- *
- * Only environment-variable syntax `KEY=value` (optionally with surrounding
- * quotes, `export` prefix and `#` comments) is supported — the subset this
- * repository's env files use. A malformed line is a hard error rather than a
- * silently mis-seeded database. This module is imported ONLY by the CLI and
- * by tests; the Next.js app loads env files through Next itself.
+ * This module is imported ONLY by the CLI and by tests; the Next.js app loads
+ * env files through Next itself. Note: @next/env caches per process, so this
+ * is intended for a single call at process startup.
  */
 
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { loadEnvConfig } from "@next/env";
 
 export type LoadEnvResult = {
-  /** Env files that existed and were applied, in application order. */
+  /** NODE_ENV actually applied (defaults to "development" when unset/blank). */
+  nodeEnv: string;
+  /** Env files that existed and were applied, in Next's load order. */
   loaded: string[];
 };
 
-export type ParsedEnvLine = [key: string, value: string];
-
-const KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
-/** Parse one env file. Throws with file and line number on malformed input. */
-export function parseEnvFile(content: string, file = "<env>"): ParsedEnvLine[] {
-  const result: ParsedEnvLine[] = [];
-  const lines = content.split(/\r?\n/);
-  for (let index = 0; index < lines.length; index += 1) {
-    const raw = lines[index].trim();
-    if (!raw || raw.startsWith("#")) continue;
-
-    const eq = raw.indexOf("=");
-    if (eq === -1) {
-      throw new Error(`[env-file] ${file}:${index + 1} expected KEY=value, got: ${raw}`);
-    }
-
-    let key = raw.slice(0, eq).trim();
-    if (key.startsWith("export ")) key = key.slice("export ".length).trim();
-    if (!KEY_PATTERN.test(key)) {
-      throw new Error(`[env-file] ${file}:${index + 1} invalid variable name: ${key}`);
-    }
-
-    let value = raw.slice(eq + 1).trim();
-    if (value.length >= 2) {
-      const first = value[0];
-      const last = value[value.length - 1];
-      if (first === '"' && last === '"') {
-        value = value
-          .slice(1, -1)
-          .replace(/\\n/g, "\n")
-          .replace(/\\"/g, '"')
-          .replace(/\\\\/g, "\\");
-      } else if (first === "'" && last === "'") {
-        value = value.slice(1, -1);
-      }
-    }
-    result.push([key, value]);
-  }
-  return result;
+/** The effective NODE_ENV: an explicit value wins; otherwise "development". */
+export function effectiveNodeEnv(env: Record<string, string | undefined> = process.env): string {
+  return (env.NODE_ENV ?? "").trim() || "development";
 }
 
-/**
- * Apply the env-file chain to `env` (defaults to `process.env`).
- *
- * `nodeEnv` selects the environment-specific files; when it is unset/empty
- * only `.env` and `.env.local` are considered, mirroring Next.js behaviour
- * for an unknown lifecycle. The variable that is already set in the real
- * environment is never overridden; file-vs-file precedence still applies.
- */
-export function loadEnvFiles(
-  cwd: string = process.cwd(),
-  env: NodeJS.ProcessEnv = process.env,
-  nodeEnv: string | undefined = env.NODE_ENV
-): LoadEnvResult {
-  const environment = (nodeEnv ?? "").trim();
-  const candidates = [".env"];
-  if (environment) candidates.push(`.env.${environment}`);
-  candidates.push(".env.local");
-  if (environment) candidates.push(`.env.${environment}.local`);
-
-  // Keys that exist before any file is applied come from the real shell and
-  // are never overridden — same rule as Next.js.
-  const realKeys = new Set(Object.keys(env));
-
-  const loaded: string[] = [];
-  for (const name of candidates) {
-    const path = join(cwd, name);
-    let content: string;
-    try {
-      content = readFileSync(path, "utf8");
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
-      throw new Error(`[env-file] cannot read ${path}: ${(error as Error).message}`);
-    }
-    for (const [key, value] of parseEnvFile(content, path)) {
-      if (realKeys.has(key)) continue;
-      env[key] = value;
-    }
-    loaded.push(name);
+export function loadEnvFiles(cwd: string = process.cwd()): LoadEnvResult {
+  const nodeEnv = effectiveNodeEnv();
+  if (!process.env.NODE_ENV?.trim()) {
+    // Normalize so downstream code sees the same effective environment the
+    // loader used (mirrors `next dev` forcing NODE_ENV=development).
+    // Object.assign bypasses the augmented read-only NODE_ENV typing.
+    Object.assign(process.env, { NODE_ENV: nodeEnv });
   }
-  return { loaded };
+
+  const loadErrors: string[] = [];
+  const logger = {
+    info: () => undefined,
+    error: (...args: unknown[]) => {
+      loadErrors.push(args.map(String).join(" "));
+    },
+  };
+
+  const dev = nodeEnv === "development";
+  const { loadedEnvFiles } = loadEnvConfig(cwd, dev, logger);
+
+  if (loadErrors.length > 0) {
+    throw new Error(
+      `[env-file] failed to load environment files in ${cwd}: ${loadErrors.join("; ")}`
+    );
+  }
+
+  return { nodeEnv, loaded: loadedEnvFiles.map((file) => file.path) };
 }

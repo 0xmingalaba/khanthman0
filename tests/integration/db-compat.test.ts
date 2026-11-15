@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { after, before, describe, test } from "node:test";
 import { resolvePgliteDir } from "@/src/db/config";
-import { loadEnvFiles } from "@/src/db/env-file";
 import { createPgliteDatabase } from "@/src/db/pglite";
 
 /**
@@ -115,13 +116,33 @@ describe("legacy .data/mingala compatibility (isolated temp dir)", () => {
       "utf8"
     );
 
-    const cliEnv = { NODE_ENV: "development" } as NodeJS.ProcessEnv;
-    const nextEnv = { NODE_ENV: "development" } as NodeJS.ProcessEnv;
-    loadEnvFiles(projectDir, cliEnv, "development");
-    loadEnvFiles(projectDir, nextEnv, "development");
-
-    const cliDir = resolvePgliteDir(cliEnv, projectDir);
-    const nextDir = resolvePgliteDir(nextEnv, projectDir);
+    // @next/env mutates process.env and caches per process, so the probe runs
+    // in a fresh child process — replaying exactly what both the CLI and
+    // `next dev` do at startup (see tests/unit/env-file.test.ts).
+    const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
+    const probeSource = `
+import { loadEnvFiles } from ${JSON.stringify(join(repoRoot, "src", "db", "env-file.ts"))};
+import { resolvePgliteDir } from ${JSON.stringify(join(repoRoot, "src", "db", "config.ts"))};
+loadEnvFiles(process.argv[1]);
+console.log("DIR=" + resolvePgliteDir(process.env, process.argv[1]));
+`;
+    const runSide = () => {
+      const child = spawnSync(
+        process.execPath,
+        ["--import", "tsx", "--input-type=module", "-e", probeSource, projectDir],
+        {
+          cwd: repoRoot,
+          env: { PATH: process.env.PATH, NODE_ENV: "development" },
+          encoding: "utf8",
+          timeout: 120_000,
+        }
+      );
+      const match = /^DIR=(.*)$/m.exec(`${child.stdout}${child.stderr}`);
+      assert.ok(match, `probe failed: ${child.stdout}${child.stderr}`);
+      return match[1];
+    };
+    const cliDir = runSide();
+    const nextDir = runSide();
     assert.equal(cliDir, nextDir);
     assert.equal(cliDir, legacyDir);
 
