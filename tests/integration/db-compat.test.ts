@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { after, before, describe, test } from "node:test";
 import { resolvePgliteDir } from "@/src/db/config";
 import { createPgliteDatabase } from "@/src/db/pglite";
@@ -120,9 +120,13 @@ describe("legacy .data/mingala compatibility (isolated temp dir)", () => {
     // in a fresh child process — replaying exactly what both the CLI and
     // `next dev` do at startup (see tests/unit/env-file.test.ts).
     const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
+    // Absolute paths are not valid ESM specifiers on Windows ("D:\\dir\\file.ts"
+    // has the scheme "d:"); use file:/// URLs there.
+    const moduleSpecifier = (segments: string[]): string =>
+      pathToFileURL(join(repoRoot, ...segments)).href;
     const probeSource = `
-import { loadEnvFiles } from ${JSON.stringify(join(repoRoot, "src", "db", "env-file.ts"))};
-import { resolvePgliteDir } from ${JSON.stringify(join(repoRoot, "src", "db", "config.ts"))};
+import { loadEnvFiles } from ${JSON.stringify(moduleSpecifier(["src", "db", "env-file.ts"]))};
+import { resolvePgliteDir } from ${JSON.stringify(moduleSpecifier(["src", "db", "config.ts"]))};
 loadEnvFiles(process.argv[1]);
 console.log("DIR=" + resolvePgliteDir(process.env, process.argv[1]));
 `;
