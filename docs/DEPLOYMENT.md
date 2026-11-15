@@ -6,29 +6,61 @@ That value is client-controlled, so an attacker could rotate a forged header per
 request and land in a fresh rate-limit bucket every time, turning login into an
 unlimited password-guessing channel.
 
-The fix has two halves, and **both** must be understood before deploying:
+A hop count alone is not a trust boundary. If a caller can reach the origin
+directly, it can supply a whole plausible-looking forwarding chain itself. The
+current fix therefore has three parts:
 
-1. **Infrastructure** — declare how many proxies you actually operate, so the
-   address is read from the trustworthy (right-hand) end of the header chain.
-2. **Application** — auth endpoints are limited on *two* dimensions, so even a
+1. **Transport peer capture** — `instrumentation.ts` installs a Node diagnostics
+   channel subscriber (`src/api/peer-address.ts`) that records `socket.remoteAddress`
+   for each request. This value is never derived from a header.
+2. **Explicit proxy trust** — forwarded headers are honored only when the captured
+   immediate peer matches `TRUSTED_PROXY_CIDRS`, and the chain is read from the
+   trustworthy right-hand end using `TRUSTED_PROXY_HOPS`.
+3. **Application** — auth endpoints are limited on *two* dimensions, so even a
    working IP rotation cannot reset the per-account counter.
 
 ---
 
-## 1. `TRUSTED_PROXY_HOPS`
+## 1. Required trusted-proxy configuration
 
-A Next.js route handler cannot see the TCP peer address. It only sees headers, and
-any client can send those. Therefore the app must be *told* the topology.
+### `TRUSTED_PROXY_CIDRS`
 
-The committed `.env.example` sets `TRUSTED_PROXY_HOPS=0`. Zero means no
-forwarded-header trust: forwarding headers are ignored unless the deployment
-explicitly opts in.
+Comma-separated IP literals or CIDRs of proxies that are allowed to connect
+directly to this process. Empty is the default and trusts no proxy.
+
+```bash
+# Local reverse proxy on the same host
+TRUSTED_PROXY_CIDRS=127.0.0.1/32,::1/128
+
+# Private network load balancer / proxy tier
+TRUSTED_PROXY_CIDRS=10.0.0.0/8,192.168.0.0/16
+
+# Multi-hop example: immediate nginx plus upstream Cloudflare ranges
+TRUSTED_PROXY_CIDRS=10.0.0.1/32,173.245.48.0/20,103.21.244.0/22
+```
+
+Rules:
+- List only infrastructure you control or have verified. Do not use `0.0.0.0/0`
+  or `::/0`; wildcard ranges are rejected.
+- Any malformed entry makes the whole allowlist fail closed to empty.
+- Restrict origin access to these proxies at the network/firewall level as well.
+  The application check is a second layer, not a replacement for network policy.
+
+### `TRUSTED_PROXY_HOPS`
+
+The committed `.env.example` sets `TRUSTED_PROXY_HOPS=0` and leaves
+`TRUSTED_PROXY_CIDRS` empty. Zero means no forwarded-header trust: forwarding
+headers are ignored unless the deployment explicitly opts in.
 
 | Value | Meaning | Effect |
 | --- | --- | --- |
-| `0` (default) | No proxy you control | Forwarding headers are ignored. **All callers share one bucket.** Safe but coarse: a busy NAT shares a limit. |
-| `1` | One proxy in front (Vercel, nginx, ALB, Cloudflare with a single hop) | Client address read **1 position from the right** of `X-Forwarded-For`. |
-| `n` | `n` trusted proxies | Client address read `n` positions from the right. |
+| `0` (default) | No forwarded-header trust | Forwarding headers are ignored. Direct connections are bucketed by their captured socket address when available; otherwise **all callers share one bucket.** Safe but coarse. |
+| `1` | One trusted proxy in front (nginx, ALB, Cloudflare with a single hop) | Client address read **1 position from the right** of `X-Forwarded-For`, only from a trusted immediate peer. |
+| `n` | `n` trusted proxies | Client address read `n` positions from the right. The proxy entries to its right must themselves be in `TRUSTED_PROXY_CIDRS`. |
+
+An unparsable hop count fails closed to `0`. A header shorter than the configured
+chain, or a chain containing an untrusted upstream proxy, fails closed to the
+shared `untrusted` bucket.
 
 ### Why "from the right" matters
 
@@ -38,41 +70,33 @@ Every proxy *appends* the address it saw. A client may send:
 X-Forwarded-For: 1.2.3.4, 5.6.7.8        ← attacker wrote both entries
 ```
 
-Your single proxy then appends the real peer:
+Your single trusted proxy then appends the real peer:
 
 ```
 X-Forwarded-For: 1.2.3.4, 5.6.7.8, 203.0.113.9
 ```
 
-With `TRUSTED_PROXY_HOPS=1` the app reads `203.0.113.9` — the real address. The
-attacker can prepend unlimited junk and it is ignored, because the right-hand
-position is written by infrastructure they do not control.
+With `TRUSTED_PROXY_HOPS=1` and the proxy in `TRUSTED_PROXY_CIDRS`, the app reads
+`203.0.113.9` — the real address. The attacker can prepend unlimited junk and it is
+ignored, because the right-hand position is written by infrastructure they do not
+control.
 
-With the old code (`split(",")[0]`) the app read `1.2.3.4` — the attacker's fiction.
+If the same header arrives from a direct, untrusted peer, it is ignored entirely
+and the request is bucketed by the captured socket address (or the shared bucket
+if peer capture is unavailable).
 
 ### Choosing a value
 
 | Your setup | Set |
 | --- | --- |
-| `next start` directly exposed, no proxy | `0` |
-| Vercel | `1`, and consider `TRUSTED_CLIENT_IP_HEADER=x-vercel-forwarded-for` |
-| nginx / Caddy / Traefik reverse proxy | `1` |
-| Cloudflare → nginx → app | `2` (or set `cf-connecting-ip` as the dedicated header) |
-| ALB → nginx → app | `2` |
+| `next start` directly exposed, no proxy | `TRUSTED_PROXY_CIDRS=` empty, `TRUSTED_PROXY_HOPS=0` |
+| nginx / Caddy / Traefik reverse proxy on the same host | `TRUSTED_PROXY_CIDRS=127.0.0.1/32,::1/128`, `TRUSTED_PROXY_HOPS=1` |
+| ALB → nginx → app | Allowlist the nginx and ALB addresses, `TRUSTED_PROXY_HOPS=2` |
+| Cloudflare → nginx → app | Allowlist nginx plus verified Cloudflare ranges, `TRUSTED_PROXY_HOPS=2` (or use `cf-connecting-ip` as the dedicated header) |
+| Vercel / another managed platform | Verify how the platform exposes the client address and whether peer capture works in that runtime; consider `TRUSTED_CLIENT_IP_HEADER=x-vercel-forwarded-for` only with the platform's verified proxy trust. If the socket peer cannot be captured, the app fails closed; use the platform WAF/rate limiting. |
 
-Configure one or more hops only after verifying the actual proxy topology and how
-each proxy handles forwarding headers. These setups are examples, not verified
-defaults. An incorrect hop count can select an attacker-controlled entry and give
-a request a client identity the application should not trust.
-
-Consider direct access to the application origin as part of that verification. If
-callers can bypass the proxies and reach the application directly, they can supply
-forwarding headers themselves; a hop count cannot make those headers trustworthy.
-Restrict origin access to the trusted proxy path before enabling proxy trust.
-
-An unparsable value fails closed to `0`. A value larger than the number of entries
-actually present also fails closed: the request is bucketed as `untrusted` rather
-than trusting a header that cannot be the product of that many appends.
+Configure hops only after verifying the actual proxy topology and how each proxy
+handles forwarding headers. These setups are examples, not verified defaults.
 
 ## 2. `TRUSTED_CLIENT_IP_HEADER` (optional)
 
@@ -85,6 +109,8 @@ TRUSTED_CLIENT_IP_HEADER=cf-connecting-ip         # Cloudflare
 ```
 
 Rules:
+- It is honored **only** when the immediate captured peer is in
+  `TRUSTED_PROXY_CIDRS`. From an untrusted peer it is ignored.
 - Only enable when you are **certain** the edge strips or overwrites any
   client-supplied value for that header. If it does not, you have reintroduced the
   original vulnerability.
@@ -133,8 +159,17 @@ that would tell an attacker how to structure a spoofing attempt. Verify by test
 instead:
 
 ```
-npm test                       # includes tests/unit/client-ip.test.ts
+npm test                       # includes the client-IP and rate-limit regressions
 ```
 
-`tests/unit/client-ip.test.ts` covers spoofed headers, missing headers, too-few
-entries, port suffixes, dedicated-header mode, and the fail-closed default.
+Relevant suites:
+- `tests/unit/client-ip.test.ts` — peer trust, spoofed headers, missing headers,
+  too-few entries, malformed chains, port suffixes, IPv4/IPv6, dedicated-header
+  mode, and the fail-closed default.
+- `tests/unit/rate-limit-ip-spoofing.test.ts` — rotating forged headers cannot
+  bypass the login limiter; legitimate clients behind a trusted proxy keep
+  distinct buckets.
+- `tests/unit/peer-address.test.ts` — the captured peer comes from the socket,
+  not from `X-Forwarded-For`.
+- `tests/unit/proxy-config.test.ts` — the committed example and this guide agree
+  on the fail-closed default.
