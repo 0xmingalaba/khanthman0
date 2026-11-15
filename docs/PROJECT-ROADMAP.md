@@ -48,7 +48,7 @@ Build a Myanmar-focused prediction-market web application where users can browse
 | 0 | Product identity and project foundation | PR #8 merged into `main`; local Windows verification pending |
 | 1 | Get the existing webapp working locally | **Current priority** |
 | 2 | Complete the prediction-market MVP | Not yet accepted as complete |
-| 2A | UI/UX redesign (Polymarket-inspired visual system, compact trading interface, three trading modes) | Planned — specification-gated; not implemented |
+| 2A | UI/UX redesign (Polymarket-inspired visual system, compact trading interface, four trading features) | Planned — specification-gated; not implemented |
 | 3 | Administration and operations | Planned |
 | 4 | PWA and Telegram distribution | Planned |
 | 5 | MMK payment operations | Blocked pending reviews and approval |
@@ -189,7 +189,7 @@ The intended UX is similar in familiarity to Polymarket: select YES or NO, enter
 
 **Goal:** Replace the current ad-hoc styling with a coherent, compact, accessible visual system and a focused trading interface, inspired by Polymarket's usability. Khant Hman keeps its own product identity, rules and implementation; the inspiration is navigational and visual, not a clone. Phase 2A covers ordinary user-facing pages and functionality only: staff operations and Admin panels remain future scope under Phase 3 — Administration and operations — and must not be included in Phase 2A development.
 
-> **Status: PLANNED — REDESIGN NOT IMPLEMENTED.** The Phase 2A redesign (visual system, compact interface, interaction modes) is not implemented; no checkbox may be ticked until the work is implemented and verified per the Definition of done in Section 4. The exception is the **Limit** trading functionality: it is already implemented in the repository and serves as the baseline that this redesign builds on — the redesign must not change its behavior. This phase covers ordinary user-facing pages and functionality only. This phase must not be mixed with the MMK-only migration, and must not introduce real-money deposits, withdrawals or payment integrations. The existing virtual-credit-only MVP scope is unchanged.
+> **Status: PLANNED — REDESIGN NOT IMPLEMENTED.** The Phase 2A redesign (visual system, compact interface, trading features) is not implemented; no checkbox may be ticked until the work is implemented and verified per the Definition of done in Section 4. The exception is the **Limit** trading functionality: it is already implemented in the repository and serves as the baseline that this redesign builds on — the redesign must not change its behavior. This phase covers ordinary user-facing pages and functionality only. This phase must not be mixed with the MMK-only migration, and must not introduce real-money deposits, withdrawals or payment integrations. The existing virtual-credit-only MVP scope is unchanged.
 
 ### 2A.1 Polymarket-inspired visual redesign
 
@@ -206,19 +206,23 @@ The intended UX is similar in familiarity to Polymarket: select YES or NO, enter
 
 - [ ] Redesign the order book to reduce unnecessary vertical space (denser rows, tighter spacing, clear best-bid/best-ask emphasis).
 - [ ] Redesign the order ticket to reduce unnecessary vertical space.
+- [ ] Plan a user-facing **Split / Merge** surface in the trading interface (separate from order-book actions), unimplemented until its specification is approved (see 2A.3).
 - [ ] Keep the primary Place Order action accessible without excessive scrolling (at desktop and mobile viewport sizes).
 - [ ] Remove unnecessary test/demo UI elements from production surfaces.
 - [ ] Preserve clear, always-visible disclosures that credits are virtual and that transactions do not involve real money on every trading surface (order ticket, order review, portfolio).
 
-### 2A.3 Trading interaction modes
+### 2A.3 Trading features
 
-Plan three distinct trading interaction modes with exactly these UI labels:
+Plan four distinct trading features with exactly these UI labels. All amounts are expressed in whole MMK.
 
-- [ ] **1Tap** — one-tap interaction mode (new; unimplemented).
-- [ ] **Market** — market interaction mode (new; unimplemented).
-- [ ] **Limit** — the existing limit-order experience (implemented; UI may be regrouped/restyled under the new mode selector without changing behavior).
+- [ ] **1Tap** — preset quick-buy amounts: 1,000 / 5,000 / 10,000 MMK. Selecting a preset executes immediately after server-side validation and a valid execution quote. (New; unimplemented.)
+- [ ] **Market** — Buy/Sell; whole-MMK amount input; displays available cash; presets of 500 / 1,000 / 5,000 / 10,000 MMK; shows estimated To Win and Average Price; shows an execution preview before the user confirms Buy/Sell. (New; unimplemented.)
+- [ ] **Limit** — the existing limit-order experience (implemented; UI may be regrouped/restyled under the new trading interface without changing behavior).
+- [ ] **Split / Merge** — available to all users (not restricted to market makers or advanced accounts). Split converts market-specific MMK collateral into equal quantities of YES and NO shares (1:1). Merge converts equal quantities of YES and NO shares back into their corresponding MMK collateral. Split / Merge operations are separate from order-book execution and require atomic, server-authoritative accounting. (New; unimplemented.)
 
-**Specification gate (mandatory).** Before any implementation of **1Tap** or **Market**, and before any change to Limit's behavior, a separate product/technical specification must be written, reviewed and approved by the product owner. That specification must define, at minimum:
+**Specification gate (mandatory).** Before any implementation of **1Tap**, **Market** or **Split / Merge**, and before any change to Limit's behavior, a separate product/technical specification must be written, reviewed and approved by the product owner. That specification must define, at minimum:
+
+For **1Tap** and **Market**:
 
 - Market execution and available-liquidity behavior.
 - Price impact, slippage limits and confirmation rules.
@@ -226,14 +230,24 @@ Plan three distinct trading interaction modes with exactly these UI labels:
 - Quote freshness and server-side validation.
 - Balance reservation and share handling.
 
-None of the above may be invented or assumed during design or implementation, and this roadmap deliberately does not specify them. Until the specification is approved, the only permitted work is: visual redesign of the Limit mode (unchanged behavior), mode-selector UI that exposes Limit only or disables/hides unimplemented modes, and the 2A.1–2A.2 work. Any execution behavior for 1Tap or Market without the approved specification is out of scope and must not be merged.
+For **Split / Merge**:
+
+- Collateral accounting (what "market-specific MMK collateral" means; the debits and credits of a split and of a merge).
+- Share creation and burning rules (equal YES/NO quantities at 1:1).
+- Balance validation (sufficient collateral for a split; sufficient equal YES/NO quantities for a merge).
+- Atomicity of the operation (all-or-nothing across collateral and shares).
+- Idempotency (retried requests must not duplicate split or merge effects).
+- Ledger records (the journals/entries written for both directions).
+- Market lifecycle restrictions (whether and when split/merge is permitted relative to market status; any edge cases must be specified, not assumed).
+
+None of the above may be invented or assumed during design or implementation, and this roadmap deliberately does not specify them. Until the specifications are approved, the only permitted work is: visual redesign of the Limit feature (unchanged behavior), trading-interface UI that exposes Limit only or disables/hides unimplemented features, and the 2A.1–2A.2 work. Any execution behavior for 1Tap, Market or Split / Merge without the approved specifications is out of scope and must not be merged. Split / Merge must remain available to all users — it must never be gated to market makers or advanced accounts.
 
 ### 2A.4 Dependencies and sequencing
 
 - [ ] Phase 1 exit criteria met (the existing app verified working locally on Windows 11) before restyling begins, so the redesign can be checked against a known-good baseline.
 - [ ] Design tokens (color, typography, spacing, radius, elevation) and the Light/Dark theme mechanism specified before per-page work starts.
 - [ ] A written page/component inventory for all target surfaces (homepage, listings, details, order ticket, order book, portfolio, login, signup) approved before implementation PRs begin.
-- [ ] The separate product/technical specification for 1Tap and Market approved before any work on those modes.
+- [ ] The separate product/technical specifications for **1Tap**, **Market** and **Split / Merge** approved before any work on those features.
 - [ ] i18n parity maintained (English and Burmese) for every new string introduced.
 - [ ] Redesign verification plan defined up front (desktop and mobile viewport matrices; both themes; no financial-logic changes in any redesign PR).
 
@@ -248,7 +262,11 @@ None of the above may be invented or assumed during design or implementation, an
 - [ ] No unnecessary test/demo UI elements remain on production surfaces.
 - [ ] Virtual-credit disclosures remain present and clear on every trading surface.
 - [ ] Limit order behavior, placement/cancellation flows and all ledger, trading, pricing and settlement logic are unchanged by the redesign; automated tests covering trading paths still pass unmodified (unit, integration).
-- [ ] **1Tap** and **Market** ship only after their specification is approved, implemented exactly as specified, and verified with explicit tests (execution semantics, safeguards, server-side validation) defined by that specification.
+- [ ] The trading interface exposes the four planned trading features (**1Tap**, **Market**, **Limit**, **Split / Merge**); **Limit** remains behavior-identical; unimplemented features are visibly inert until they ship per their approved specifications.
+- [ ] **1Tap**, **Market** and **Split / Merge** ship only after their specifications are approved, implemented exactly as specified, and verified with explicit tests (execution semantics, safeguards, server-side validation; and for Split / Merge: collateral accounting, share creation/burning, balance validation, atomicity, idempotency, ledger records, market lifecycle restrictions) defined by those specifications.
+- [ ] **1Tap** presets are 1,000 / 5,000 / 10,000 MMK; **Market** presets are 500 / 1,000 / 5,000 / 10,000 MMK; both are expressed in whole MMK, alongside an available-cash display, estimated To Win and Average Price, and an execution preview before confirmation for **Market**, exactly as their specification defines.
+- [ ] **Split / Merge** is available to all users (never restricted to market makers or advanced accounts), is separate from order-book execution, and — once shipped per its approved specification — performs atomic, server-authoritative accounting: **Split** converts market-specific MMK collateral into equal quantities of YES and NO shares (1:1) and **Merge** converts equal quantities of YES and NO shares back into their corresponding MMK collateral.
+- [ ] All amounts across the trading interface (presets, collateral, payouts, conversion inputs) are expressed in whole MMK.
 - [ ] All new UI strings exist in both English and Burmese.
 
 ### 2A.6 Explicit non-goals and boundaries
@@ -260,6 +278,8 @@ None of the above may be invented or assumed during design or implementation, an
 - [ ] No database schema, migration or seed changes.
 - [ ] No removal of virtual-credit labeling or any language implying real-money trading.
 - [ ] This phase does not expand the channel scope (web remains the target; PWA/Telegram remain Phase 4).
+- [ ] **Split / Merge** implementation is separate from order-book execution; it must not be coupled to matching, settlement or reservation paths without separate approval, and must use whole-MMK accounting.
+- [ ] Documentation is not implementation approval: no feature listed here is implemented because it appears in this roadmap; **1Tap**, **Market** and **Split / Merge** require their approved specifications first, and no checkbox above may be ticked earlier.
 
 ## Phase 3 — Administration and operations
 
@@ -422,7 +442,7 @@ These topics were discussed but are not finalized. Record the decision here when
 - [ ] Public beta eligibility and launch criteria?
 - [ ] UI/UX redesign scheduling: when Phase 2A work starts and in what order (visual system, per-page redesign, compact trading interface)?
 - [ ] Light/Dark theme switching: OS-preference detection, manual toggle and persistence approach?
-- [ ] Trading interaction modes: approve the separate product/technical specification required before **1Tap** or **Market** implementation (execution semantics, liquidity behavior, slippage/confirmation rules, 1Tap safeguards, quote freshness, reservations)? Limit remains the only working mode until then.
+- [ ] Trading features (**1Tap**, **Market**, **Limit**, **Split / Merge**): approve the separate product/technical specifications required before **1Tap**, **Market** or **Split / Merge** implementation — execution semantics, liquidity behavior, slippage/confirmation rules, safeguards, quote freshness, reservations; and for **Split / Merge**: collateral accounting, share creation/burning, balance validation, atomicity, idempotency, ledger records, market lifecycle restrictions. Limit remains the only working feature until then.
 
 ## 6. Change history
 
@@ -433,5 +453,6 @@ These topics were discussed but are not finalized. Record the decision here when
 | 2026-11-15 | Product owner confirmed MMK (ကျပ်) as the sole currency across the platform. Removed Pya as a share denomination/subunit from the product specification; added whole-MMK pricing and a required legacy-unit migration/reconciliation task. No financial code or data changed. |
 | 2026-11-15 | Rebased onto post-PR-#8 `main` (`5c6f103`). Reframed the market-catalog task as verification of the existing database-backed implementation (`listMarkets` via `app/[locale]/page.tsx` and `/api/markets`), and the trading tasks as audit/adapt/verify of the existing implementation in `src/domain/trading.ts`; recorded that MMK-unit verification has not happened. Recorded PR #8's merge. No financial code or data changed. |
 | 2026-11-15 | Follow-up Codex review: reframed market discovery (categories, search, detail route), authentication rate limiting/CSRF and audit-log items as verification of existing implementations; moved the account-activity smoke check out of Phase 1 (no such view exists) to Phase 2. No code changed. |
-| 2026-11-15 | Added Phase 2A (UI/UX redesign): Polymarket-inspired visual system (flat, white Light Mode; consistent pages; responsive; user-accessible Light/Dark theme switching), compact trading interface, and the three trading interaction modes (**1Tap**, **Market**, **Limit**) behind an explicit specification gate for 1Tap and Market execution semantics. Dependencies and acceptance criteria recorded. Documentation only — no application code, schema, migration, API, trading or financial-rule changes; MMK migration unchanged and out of scope; nothing marked implemented. |
+| 2026-11-15 | Added Phase 2A (UI/UX redesign): Polymarket-inspired visual system (flat, white Light Mode; consistent pages; responsive; user-accessible Light/Dark theme switching), compact trading interface, and the trading features (**1Tap**, **Market**, **Limit**) behind an explicit specification gate for 1Tap and Market execution semantics. Dependencies and acceptance criteria recorded. Documentation only — no application code, schema, migration, API, trading or financial-rule changes; MMK migration unchanged and out of scope; nothing marked implemented. |
+| 2026-11-15 | Phase 2A clarification (owner review of PR #12): **Split / Merge** added as the fourth trading feature — available to all users; Split converts market-specific MMK collateral into equal YES and NO shares (1:1); Merge converts equal YES and NO shares back into corresponding MMK collateral; separate from order-book execution; requires atomic, server-authoritative accounting. **1Tap** (presets 1,000 / 5,000 / 10,000 MMK), **Market** (whole-MMK amount input, available-cash display, presets 500 / 1,000 / 5,000 / 10,000 MMK, estimated To Win and Average Price, execution preview before confirm) and **Split / Merge** each carry a mandatory specification gate (for Split / Merge: collateral accounting, share creation/burning, balance validation, atomicity, idempotency, ledger records, market lifecycle restrictions). All amounts are whole MMK. Documentation only. |
 | 2026-11-15 | Phase 2A clarifications (owner review of PR #12): Phase 2A covers ordinary user-facing pages and functionality only — staff operations and Admin panels remain future scope under Phase 3 and are excluded from current development; status banner clarified — the redesign is not implemented, while the existing Limit trading functionality is already implemented and is the baseline the redesign builds on (its behavior is unchanged by the redesign). Documentation only. |
