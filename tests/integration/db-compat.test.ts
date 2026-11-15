@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, stat } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
@@ -56,6 +56,41 @@ describe("legacy .data/mingala compatibility (isolated temp dir)", () => {
     // The legacy directory still exists with its contents afterwards.
     const stats = await stat(join(baseDir, ".data", "mingala"));
     assert.ok(stats.isDirectory());
+  });
+
+  test("a copied .env.example (blank variables) discovers and opens the legacy database intact", async () => {
+    // Regression for the .env.example defect: the template previously shipped
+    // KHANTHMAN_PGLITE_DIR=./.data/khanthman populated, so copying it to
+    // .env.local silently shadowed an existing .data/mingala database. The
+    // template now ships the variable blank (blank counts as unset), and this
+    // test replays exactly that configuration end to end.
+    const copiedTemplate = {
+      KHANTHMAN_DB: "",
+      KHANTHMAN_PGLITE_DIR: "",
+      MINGALA_DB: "",
+      MINGALA_PGLITE_DIR: "",
+    };
+
+    const resolved = resolvePgliteDir(copiedTemplate, baseDir);
+    assert.equal(resolved, join(baseDir, ".data", "mingala"));
+
+    const db = await createPgliteDatabase(resolved);
+    try {
+      const result = await db.query<{ id: number; note: string }>(
+        "SELECT id, note FROM rebrand_probe"
+      );
+      assert.deepEqual(result.rows, [{ id: 1, note: "pre-rebrand data" }]);
+    } finally {
+      await db.close();
+    }
+
+    // And it still prefers legacy data even when an empty ./.data/khanthman
+    // exists, exactly the pre-fix failure mode, now covered against PGlite.
+    await mkdir(join(baseDir, ".data", "khanthman"), { recursive: true });
+    assert.equal(
+      resolvePgliteDir(copiedTemplate, baseDir),
+      join(baseDir, ".data", "mingala")
+    );
   });
 
   test("an empty new default database is not preferred over legacy data", async () => {

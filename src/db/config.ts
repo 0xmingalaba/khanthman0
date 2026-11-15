@@ -94,7 +94,9 @@ export function resolvePgliteDir(
     if (legacyHasData) {
       console.warn(
         "[db-config] Both ./.data/khanthman and ./.data/mingala hold data; " +
-          "using ./.data/khanthman. Set KHANTHMAN_PGLITE_DIR to choose explicitly."
+          "using ./.data/khanthman. To use the legacy store instead, set " +
+          "KHANTHMAN_PGLITE_DIR=./.data/mingala. Setting a directory selects it " +
+          "explicitly; it does not migrate or copy any data."
       );
     }
     return newDir;
@@ -103,7 +105,11 @@ export function resolvePgliteDir(
   if (legacyHasData) {
     console.warn(
       "[db-config] Using legacy PGlite data directory ./.data/mingala. " +
-        "Set KHANTHMAN_PGLITE_DIR to migrate to ./.data/khanthman."
+        "Set KHANTHMAN_PGLITE_DIR=./.data/khanthman to select the new directory " +
+        "instead — this selects that directory explicitly and does NOT migrate " +
+        "or copy any data from ./.data/mingala; move the data yourself if you " +
+        "want it in the new location. Set KHANTHMAN_PGLITE_DIR=./.data/mingala " +
+        "to keep the legacy store without this warning."
     );
     return legacyDir;
   }

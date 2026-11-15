@@ -97,6 +97,40 @@ describe("resolvePgliteDir", () => {
     assert.equal(resolvePgliteDir({}, baseDir), join(baseDir, ".data", "khanthman"));
   });
 
+  test("a copied .env.example (all-blank variables) still discovers legacy data", async () => {
+    // Regression: .env.example previously shipped a *populated*
+    // KHANTHMAN_PGLITE_DIR=./.data/khanthman, which took precedence over legacy
+    // discovery and silently shadowed an existing .data/mingala database.
+    // The template now ships the variable blank, and blank counts as unset.
+    const legacyDir = join(baseDir, ".data", "mingala");
+    await mkdir(legacyDir, { recursive: true });
+    await writeFile(join(legacyDir, "PG_VERSION"), "16");
+    const copiedEnvExample = {
+      KHANTHMAN_DB: "",
+      KHANTHMAN_PGLITE_DIR: "",
+      MINGALA_DB: "",
+      MINGALA_PGLITE_DIR: "",
+    };
+    assert.equal(isPgliteMode(copiedEnvExample), false);
+    assert.equal(resolvePgliteDir(copiedEnvExample, baseDir), legacyDir);
+  });
+
+  test("an explicitly populated KHANTHMAN_PGLITE_DIR shadows legacy data (documented opt-in)", async () => {
+    // This is the escape hatch the .env.example comment describes: setting the
+    // new variable selects that directory explicitly and does NOT migrate or
+    // copy legacy data.
+    const legacyDir = join(baseDir, ".data", "mingala");
+    await mkdir(legacyDir, { recursive: true });
+    await writeFile(join(legacyDir, "PG_VERSION"), "16");
+    const explicit = join(baseDir, ".data", "khanthman");
+    assert.equal(
+      resolvePgliteDir({ KHANTHMAN_PGLITE_DIR: explicit }, baseDir),
+      explicit
+    );
+    // Legacy data is left untouched on disk.
+    assert.ok(existsSync(join(legacyDir, "PG_VERSION")));
+  });
+
   test("empty legacy directory does not trigger legacy discovery", async () => {
     await mkdir(join(baseDir, ".data", "mingala"), { recursive: true });
     assert.equal(resolvePgliteDir({}, baseDir), join(baseDir, ".data", "khanthman"));
