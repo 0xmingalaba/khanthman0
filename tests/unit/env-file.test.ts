@@ -80,6 +80,13 @@ function probe(cwd: string, env: Record<string, string | undefined>) {
 
 const UNSET = "<unset>";
 
+/**
+ * Normalize path separators for cross-platform assertions: `resolvePgliteDir`
+ * returns `join(baseDir, ".data", …)`, which is backslash-separated on Windows.
+ * Comparisons on the normalized form are equally strict on every platform.
+ */
+const toPosix = (value: string | undefined): string => (value ?? "").replace(/\\/g, "/");
+
 describe("effectiveNodeEnv", () => {
   test("explicit value wins; blank/unset default to development", () => {
     assert.equal(effectiveNodeEnv({}), "development");
@@ -97,7 +104,7 @@ describe("loadEnvFiles (child process, @next/env)", () => {
     assert.equal(result.get("NODE_ENV"), "development");
     assert.equal(result.get("LOADED") ?? "", "");
     assert.equal(result.keys.KHANTHMAN_DB, UNSET);
-    assert.match(result.get("RESOLVED_DIR") ?? "", /\.data\/khanthman$/);
+    assert.match(toPosix(result.get("RESOLVED_DIR")), /\.data\/khanthman$/);
   });
 
   test("unset NODE_ENV defaults to the development environment and loads .env.development.local", async () => {
@@ -211,6 +218,6 @@ describe("loadEnvFiles (child process, @next/env)", () => {
     );
     const result = probe(dir, {});
     assert.equal(result.code, 0, result.out);
-    assert.match(result.get("RESOLVED_DIR") ?? "", /\.data\/mingala$/);
+    assert.match(toPosix(result.get("RESOLVED_DIR")), /\.data\/mingala$/);
   });
 });
