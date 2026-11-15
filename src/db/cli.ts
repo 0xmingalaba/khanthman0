@@ -9,9 +9,14 @@
  * Requires DATABASE_URL (PostgreSQL) or KHANTHMAN_DB=pglite (embedded, dev
  * only). The legacy MINGALA_DB=pglite is still accepted (see ./config.ts).
  *
+ * Like `next dev`, this process loads `.env` / `.env.local` / `.env.<NODE_ENV>*`
+ * (see ./env-file.ts) before resolving the database, so the seed CLI and the
+ * dev server can never end up opening different PGlite directories.
+ *
  * `cleanup-idempotency` is intended for a scheduled job (cron / platform scheduler).
  * It is safe to run repeatedly and concurrently.
  */
+import { loadEnvFiles } from "./env-file";
 import { createPgliteDatabase } from "./pglite";
 import { migrate } from "./migrate";
 import type { Database } from "./executor";
@@ -39,6 +44,12 @@ async function open(): Promise<Database> {
 
 async function main() {
   const command = process.argv[2];
+  // Load the same .env files Next.js would, so this CLI and the dev server
+  // resolve identical database configuration. Malformed files abort loudly.
+  const { loaded } = loadEnvFiles();
+  if (loaded.length > 0) {
+    console.error(`[db-cli] loaded environment from ${loaded.join(", ")}`);
+  }
   const db = await open();
   try {
     if (command === "migrate") {

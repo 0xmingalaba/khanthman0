@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, stat } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 import { resolvePgliteDir } from "@/src/db/config";
+import { loadEnvFiles } from "@/src/db/env-file";
 import { createPgliteDatabase } from "@/src/db/pglite";
 
 /**
@@ -98,6 +99,41 @@ describe("legacy .data/mingala compatibility (isolated temp dir)", () => {
     // legacy store; the new directory must still not win.
     const resolved = resolvePgliteDir({}, baseDir);
     assert.equal(resolved, join(baseDir, ".data", "mingala"));
+  });
+
+  test("seed CLI and dev server resolve identically when .env.local pins the legacy dir", async () => {
+    // The Codex review finding on PR #8: the CLI ignored .env.local, so with a
+    // legacy KHANTHMAN_PGLITE_DIR/MINGALA_PGLITE_DIR pinned there, `next dev`
+    // and the seed could open different databases. Now both sides load the
+    // same env files; replay that exact configuration end to end.
+    const projectDir = join(baseDir, "project");
+    await mkdir(projectDir, { recursive: true });
+    const legacyDir = join(baseDir, ".data", "mingala"); // the shared before() fixture
+    await writeFile(
+      join(projectDir, ".env.local"),
+      ["KHANTHMAN_DB=pglite", `MINGALA_PGLITE_DIR=${legacyDir}`].join("\n"),
+      "utf8"
+    );
+
+    const cliEnv = { NODE_ENV: "development" } as NodeJS.ProcessEnv;
+    const nextEnv = { NODE_ENV: "development" } as NodeJS.ProcessEnv;
+    loadEnvFiles(projectDir, cliEnv, "development");
+    loadEnvFiles(projectDir, nextEnv, "development");
+
+    const cliDir = resolvePgliteDir(cliEnv, projectDir);
+    const nextDir = resolvePgliteDir(nextEnv, projectDir);
+    assert.equal(cliDir, nextDir);
+    assert.equal(cliDir, legacyDir);
+
+    const db = await createPgliteDatabase(cliDir);
+    try {
+      const result = await db.query<{ note: string }>(
+        "SELECT note FROM rebrand_probe WHERE id = 1"
+      );
+      assert.deepEqual(result.rows, [{ note: "pre-rebrand data" }]);
+    } finally {
+      await db.close();
+    }
   });
 
   test("explicit new KHANTHMAN_PGLITE_DIR is opened instead when configured", async () => {

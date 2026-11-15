@@ -12,7 +12,7 @@
     "test:all": "npm run test && npm run test:integration",
     "db:migrate": "node --import tsx src/db/cli.ts migrate",
     "db:seed": "node --import tsx src/db/cli.ts seed",
-    "dev:pglite": "KHANTHMAN_DB=pglite node --import tsx src/db/cli.ts seed && KHANTHMAN_DB=pglite next dev",
+    "dev:pglite": "node scripts/dev-pglite.mjs",
     "test:postgres": "node --import tsx --test --test-reporter=spec --test-concurrency=1 'tests/integration/postgres-concurrency.test.ts'",
     "test:full": "npm run test && npm run test:integration && npm run test:postgres",
     "db:cleanup-idempotency": "node --import tsx src/db/cli.ts cleanup-idempotency",
