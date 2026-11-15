@@ -13,6 +13,9 @@ import { createHash, randomBytes } from "node:crypto";
 import type { Database } from "@/src/db/executor";
 import { DomainError } from "@/src/lib/errors";
 
+// Kept as `mingala_session` for backward compatibility: renaming the cookie
+// would instantly log out every existing signed-in user. The name is internal
+// to the client and carries no product meaning.
 export const SESSION_COOKIE = "mingala_session";
 export const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
 const TOKEN_BYTES = 32;

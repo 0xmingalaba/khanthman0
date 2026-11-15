@@ -15,6 +15,12 @@ type Props = { locale: Locale; t: Dictionary; initialMarkets: MarketSummary[] | 
 
 const CATEGORIES = ["myanmar", "economy", "crypto", "world", "sports", "technology"] as const;
 
+// Watchlist is device-local convenience data. The key was renamed during the
+// Khant Hman rebrand; reads fall back to the legacy key so existing devices
+// keep their watchlist. The legacy entry is left untouched.
+const WATCHLIST_KEY = "khanthman-watchlist-v1";
+const LEGACY_WATCHLIST_KEY = "mingala-watchlist-v1";
+
 export function HomeView({ locale, t, initialMarkets }: Props) {
   const { user, wallet, signOut, ready } = useApp();
   // Server-rendered first paint: the initial catalogue arrives with the HTML, so
@@ -30,7 +36,9 @@ export function HomeView({ locale, t, initialMarkets }: Props) {
   // Watchlist is a device-local convenience only; it never affects balances.
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem("mingala-watchlist-v1");
+      const raw =
+        window.localStorage.getItem(WATCHLIST_KEY) ??
+        window.localStorage.getItem(LEGACY_WATCHLIST_KEY);
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
         if (Array.isArray(parsed)) {
@@ -48,7 +56,7 @@ export function HomeView({ locale, t, initialMarkets }: Props) {
       if (next.has(id)) next.delete(id);
       else next.add(id);
       try {
-        window.localStorage.setItem("mingala-watchlist-v1", JSON.stringify([...next]));
+        window.localStorage.setItem(WATCHLIST_KEY, JSON.stringify([...next]));
       } catch {
         /* storage may be unavailable; the in-memory state still works */
       }

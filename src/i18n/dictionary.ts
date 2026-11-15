@@ -11,17 +11,17 @@ import type { Locale } from "@/src/lib/locale";
 const en = {
   meta: {
     tagline: "Myanmar prediction market",
-    description: "Explore questions about the future with Nan Htauk. Virtual credits only.",
+    description: "Explore questions about the future with Khant Hman. Virtual credits only.",
   },
   brand: {
-    name: "Nan Htauk",
-    fullName: "Nan Htauk Prediction Market",
+    name: "Khant Hman",
+    fullName: "Khant Hman Prediction Market",
     suffix: "PREDICTION MARKET",
   },
   notice: {
     virtual: "Virtual credits only — not real money",
     virtualDetail:
-      "Balances are play credits issued by Nan Htauk. They have no cash value and cannot be deposited or withdrawn.",
+      "Balances are play credits issued by Khant Hman. They have no cash value and cannot be deposited or withdrawn.",
   },
   nav: {
     explore: "Explore",
@@ -100,7 +100,7 @@ const en = {
   },
   trade: {
     signInToTrade: "Sign in to place an order",
-    signInHint: "Nan Htauk needs a real account to reserve collateral against your balance.",
+    signInHint: "Khant Hman needs a real account to reserve collateral against your balance.",
     reviewTitle: "Review your order",
     confirm: "Confirm order",
     back: "Go back",
@@ -136,19 +136,19 @@ const en = {
     marketClosed: "Closed",
     notMarkedTitle: "Unrealised profit is not shown",
     notMarkedDetail:
-      "Nan Htauk will show unrealised P/L once a mark-price rule is approved. Showing an estimate based on the current book would overstate certainty.",
-    virtualOnly: "These are virtual credits from the Nan Htauk simulation. They are not withdrawable.",
+      "Khant Hman will show unrealised P/L once a mark-price rule is approved. Showing an estimate based on the current book would overstate certainty.",
+    virtualOnly: "These are virtual credits from the Khant Hman simulation. They are not withdrawable.",
   },
   auth: {
-    loginTitle: "Sign in to Nan Htauk",
-    signupTitle: "Create your Nan Htauk account",
+    loginTitle: "Sign in to Khant Hman",
+    signupTitle: "Create your Khant Hman account",
     email: "Email",
     password: "Password",
     displayName: "Display name",
     passwordHint: "At least 10 characters. A passphrase is best.",
     submitLogin: "Sign in",
     submitSignup: "Create account",
-    switchToSignup: "New to Nan Htauk? Create an account",
+    switchToSignup: "New to Khant Hman? Create an account",
     switchToLogin: "Already have an account? Sign in",
     errorGeneric: "Something went wrong. Please try again.",
     errorInvalidCredentials: "Email or password is incorrect.",
@@ -181,8 +181,8 @@ const en = {
   footer: {
     tagline: "Independent thinking about the future.",
     disclaimer:
-      "Nan Htauk is a simulation using virtual credits. It is not a licensed exchange and does not handle real money.",
-    rights: "© 2026 Nan Htauk",
+      "Khant Hman is a simulation using virtual credits. It is not a licensed exchange and does not handle real money.",
+    rights: "© 2026 Khant Hman",
   },
 } as const;
 
@@ -198,17 +198,17 @@ type DictionaryShape = DeepWiden<typeof en>;
 const my: DictionaryShape = {
   meta: {
     tagline: "မြန်မာ့ ခန့်မှန်းဈေးကွက်",
-    description: "အနာဂတ်အကြောင်း မေးခွန်းများကို Nan Htauk တွင် လေ့လာပါ။ သရုပ်ပြခရက်ဒစ်များသာ။",
+    description: "အနာဂတ်အကြောင်း မေးခွန်းများကို ခန့်မှန်း တွင် လေ့လာပါ။ သရုပ်ပြခရက်ဒစ်များသာ။",
   },
   brand: {
-    name: "Nan Htauk",
-    fullName: "နံထောက် ခန့်မှန်း ဈေးကွက်",
+    name: "ခန့်မှန်း",
+    fullName: "ခန့်မှန်း ဈေးကွက်",
     suffix: "ခန့်မှန်း ဈေးကွက်",
   },
   notice: {
     virtual: "သရုပ်ပြခရက်ဒစ်များသာ — တကယ့်ငွေမဟုတ်ပါ",
     virtualDetail:
-      "လက်ကျန်ငွေများသည် Nan Htauk မှ ထုတ်ပေးထားသော သရုပ်ပြခရက်ဒစ်များဖြစ်သည်။ ငွေသားတန်ဖိုးမရှိသလို အပ်နှံခြင်း၊ ထုတ်ယူခြင်း မပြုလုပ်နိုင်ပါ။",
+      "လက်ကျန်ငွေများသည် ခန့်မှန်း မှ ထုတ်ပေးထားသော သရုပ်ပြခရက်ဒစ်များဖြစ်သည်။ ငွေသားတန်ဖိုးမရှိသလို အပ်နှံခြင်း၊ ထုတ်ယူခြင်း မပြုလုပ်နိုင်ပါ။",
   },
   nav: {
     explore: "လေ့လာရန်",
@@ -287,7 +287,7 @@ const my: DictionaryShape = {
   },
   trade: {
     signInToTrade: "အော်ဒါတင်ရန် ဝင်ရောက်ပါ",
-    signInHint: "သင့်လက်ကျန်ငွေအပေါ် အာမခံထားရန် Nan Htauk သည် တကယ့်အကောင့် လိုအပ်သည်။",
+    signInHint: "သင့်လက်ကျန်ငွေအပေါ် အာမခံထားရန် ခန့်မှန်း သည် တကယ့်အကောင့် လိုအပ်သည်။",
     reviewTitle: "သင့်အော်ဒါကို စစ်ဆေးပါ",
     confirm: "အော်ဒါ အတည်ပြုရန်",
     back: "ပြန်သွားရန်",
@@ -324,18 +324,18 @@ const my: DictionaryShape = {
     notMarkedTitle: "မရရှိသေးသော အမြတ်ကို မပြပါ",
     notMarkedDetail:
       "ဈေးနှုန်းသတ်မှတ်စည်းမျဉ်း အတည်ပြုပြီးမှသာ မရရှိသေးသော အမြတ်/အရှုံးကို ပြသပါမည်။ လက်ရှိအော်ဒါစာအုပ်အပေါ် အခြေခံခန့်မှန်းချက် ပြသခြင်းသည် မသေချာမှုကို ဖုံးကွယ်စေမည်။",
-    virtualOnly: "ဤငွေများသည် Nan Htauk သရုပ်ပြမှုမှ သရုပ်ပြခရက်ဒစ်များဖြစ်သည်။ ထုတ်ယူ၍ မရပါ။",
+    virtualOnly: "ဤငွေများသည် ခန့်မှန်း သရုပ်ပြမှုမှ သရုပ်ပြခရက်ဒစ်များဖြစ်သည်။ ထုတ်ယူ၍ မရပါ။",
   },
   auth: {
-    loginTitle: "Nan Htauk သို့ ဝင်ရောက်ပါ",
-    signupTitle: "သင့် Nan Htauk အကောင့် ဖန်တီးပါ",
+    loginTitle: "ခန့်မှန်း သို့ ဝင်ရောက်ပါ",
+    signupTitle: "သင့် ခန့်မှန်း အကောင့် ဖန်တီးပါ",
     email: "အီးမေးလ်",
     password: "စကားဝှက်",
     displayName: "ပြသမည့်အမည်",
     passwordHint: "အနည်းဆုံး စာလုံး ၁၀ လုံး။ စကားစုတစ်ခု ပိုကောင်းသည်။",
     submitLogin: "ဝင်ရောက်ရန်",
     submitSignup: "အကောင့်ဖန်တီးရန်",
-    switchToSignup: "Nan Htauk အသစ်လား။ အကောင့်ဖန်တီးပါ",
+    switchToSignup: "ခန့်မှန်း အသစ်လား။ အကောင့်ဖန်တီးပါ",
     switchToLogin: "အကောင့်ရှိပြီးသားလား။ ဝင်ရောက်ပါ",
     errorGeneric: "တစ်ခုခု မှားယွင်းသွားသည်။ ထပ်မံကြိုးစားပါ။",
     errorInvalidCredentials: "အီးမေးလ် သို့မဟုတ် စကားဝှက် မှားယွင်းနေသည်။",
@@ -368,8 +368,8 @@ const my: DictionaryShape = {
   footer: {
     tagline: "အနာဂတ်အတွက် လွတ်လပ်စွာ တွေးခေါ်ခြင်း။",
     disclaimer:
-      "Nan Htauk သည် သရုပ်ပြခရက်ဒစ်များဖြင့် လုပ်ဆောင်သော သရုပ်ပြစနစ်ဖြစ်သည်။ လိုင်စင်ရ ဈေးကွက်မဟုတ်သလို တကယ့်ငွေကို ကိုင်တွယ်ခြင်း မရှိပါ။",
-    rights: "© ၂၀၂၆ Nan Htauk",
+      "ခန့်မှန်း သည် သရုပ်ပြခရက်ဒစ်များဖြင့် လုပ်ဆောင်သော သရုပ်ပြစနစ်ဖြစ်သည်။ လိုင်စင်ရ ဈေးကွက်မဟုတ်သလို တကယ့်ငွေကို ကိုင်တွယ်ခြင်း မရှိပါ။",
+    rights: "© ၂၀၂၆ ခန့်မှန်း",
   },
 };
 

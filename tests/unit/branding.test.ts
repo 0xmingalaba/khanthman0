@@ -8,13 +8,13 @@ import type { Locale } from "@/src/lib/locale";
 
 const APPROVED_BRAND = {
   en: {
-    name: "Nan Htauk",
-    fullName: "Nan Htauk Prediction Market",
+    name: "Khant Hman",
+    fullName: "Khant Hman Prediction Market",
     suffix: "PREDICTION MARKET",
   },
   my: {
-    name: "Nan Htauk",
-    fullName: "နံထောက် ခန့်မှန်း ဈေးကွက်",
+    name: "ခန့်မှန်း",
+    fullName: "ခန့်မှန်း ဈေးကွက်",
     suffix: "ခန့်မှန်း ဈေးကွက်",
   },
 } as const satisfies Record<Locale, { name: string; fullName: string; suffix: string }>;
@@ -37,7 +37,8 @@ describe("approved product branding", () => {
 
     test(`${locale} user-facing copy contains no old product name`, () => {
       for (const [path, copy] of stringEntries(getDictionary(locale))) {
-        assert.doesNotMatch(copy, /mingala/i, `old product name at ${path}`);
+        assert.doesNotMatch(copy, /mingala|nan\s*htauk/i, `old product name at ${path}`);
+        assert.doesNotMatch(copy, /နံထောက်/, `old product name at ${path}`);
       }
     });
 
@@ -71,12 +72,13 @@ describe("approved product branding", () => {
     const source = readFileSync(resolve(process.cwd(), "app/layout.tsx"), "utf8");
     const declaration = /export const metadata: Metadata = \{([\s\S]*?)\n\};/.exec(source);
     assert.ok(declaration, "root metadata declaration must exist");
-    assert.match(declaration[1], /title: "Nan Htauk Prediction Market"/);
+    assert.match(declaration[1], /title: "Khant Hman Prediction Market"/);
     assert.match(
       declaration[1],
-      /description: "Explore questions about the future with Nan Htauk Prediction Market\. Virtual credits only\."/
+      /description: "Explore questions about the future with Khant Hman Prediction Market\. Virtual credits only\."/
     );
-    assert.match(declaration[1], /applicationName: "Nan Htauk"/);
-    assert.doesNotMatch(declaration[1], /mingala/i);
+    assert.match(declaration[1], /applicationName: "Khant Hman"/);
+    assert.doesNotMatch(declaration[1], /mingala|nan\s*htauk/i);
+    assert.doesNotMatch(declaration[1], /နံထောက်/);
   });
 });

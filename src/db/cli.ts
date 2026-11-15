@@ -6,16 +6,23 @@
  *   node --import tsx src/db/cli.ts cleanup-idempotency # prune expired idempotency keys
  *   node --import tsx src/db/cli.ts reconcile           # verify the ledger sums to zero
  *
- * Requires DATABASE_URL (PostgreSQL) or MINGALA_DB=pglite (embedded, dev only).
+ * Requires DATABASE_URL (PostgreSQL) or KHANTHMAN_DB=pglite (embedded, dev
+ * only). The legacy MINGALA_DB=pglite is still accepted (see ./config.ts).
+ *
+ * Like `next dev`, this process loads `.env` / `.env.local` / `.env.<NODE_ENV>*`
+ * (see ./env-file.ts) before resolving the database, so the seed CLI and the
+ * dev server can never end up opening different PGlite directories.
  *
  * `cleanup-idempotency` is intended for a scheduled job (cron / platform scheduler).
  * It is safe to run repeatedly and concurrently.
  */
+import { loadEnvFiles } from "./env-file";
 import { createPgliteDatabase } from "./pglite";
 import { migrate } from "./migrate";
 import type { Database } from "./executor";
 import { seedDevelopmentData } from "./seed";
 import { cleanupIdempotencyKeys } from "./idempotency-retention";
+import { isPgliteMode, resolvePgliteDir } from "./config";
 
 async function open(): Promise<Database> {
   if (process.env.DATABASE_URL) {
@@ -24,14 +31,25 @@ async function open(): Promise<Database> {
     const { createPgDatabase } = await import("./pg-runtime");
     return createPgDatabase();
   }
-  if (process.env.MINGALA_DB === "pglite") {
-    return createPgliteDatabase(process.env.MINGALA_PGLITE_DIR || "./.data/mingala");
+  if (isPgliteMode()) {
+    // Same resolution as the app (src/db/index.ts): new env vars win, legacy
+    // vars still work, and existing ./.data/mingala data is discovered rather
+    // than silently replaced by an empty ./.data/khanthman database.
+    return createPgliteDatabase(resolvePgliteDir());
   }
-  throw new Error("Set DATABASE_URL or MINGALA_DB=pglite.");
+  throw new Error(
+    "Set DATABASE_URL or KHANTHMAN_DB=pglite (legacy MINGALA_DB=pglite is still accepted)."
+  );
 }
 
 async function main() {
   const command = process.argv[2];
+  // Load the same .env files Next.js would, so this CLI and the dev server
+  // resolve identical database configuration. Malformed files abort loudly.
+  const { loaded, nodeEnv } = loadEnvFiles();
+  if (loaded.length > 0) {
+    console.error(`[db-cli] loaded environment from ${loaded.join(", ")} (NODE_ENV=${nodeEnv})`);
+  }
   const db = await open();
   try {
     if (command === "migrate") {

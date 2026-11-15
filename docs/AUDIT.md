@@ -1,5 +1,11 @@
 # Mingala — Repository Audit (Stage 0)
 
+> **Historical document.** The product was renamed to **Khant Hman Prediction Market**
+> during the repository-wide rebrand (see `chore/khant-hman-full-rebrand`). Every
+> "Mingala" reference below is a pre-rebrand historical record kept for accuracy;
+> backward-compatibility identifiers (env vars, PGlite path, the `mingala_session`
+> cookie, migration SQL) are documented in `.env.example` and `src/db/config.ts`.
+
 Date: 2026-11-14
 Auditor: Arena engineering agent
 Base audited: `chatgpt/m1-ui-overhaul` @ `e296c9d` ("Improve scrolling and reduce visual rendering cost")

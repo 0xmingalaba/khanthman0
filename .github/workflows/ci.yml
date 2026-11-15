@@ -22,19 +22,19 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: mingala
-          POSTGRES_PASSWORD: mingala
+          POSTGRES_USER: khanthman
+          POSTGRES_PASSWORD: khanthman
           POSTGRES_DB: postgres
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U mingala"
+          --health-cmd "pg_isready -U khanthman"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
       # The suite creates and drops its own databases on this server.
-      TEST_DATABASE_URL: postgresql://mingala:mingala@127.0.0.1:5432/postgres
+      TEST_DATABASE_URL: postgresql://khanthman:khanthman@127.0.0.1:5432/postgres
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -67,11 +67,11 @@ jobs:
         run: npm run build
       - name: Route and API smoke tests
         env:
-          MINGALA_DB: pglite
+          KHANTHMAN_DB: pglite
           TRUSTED_PROXY_HOPS: "0"
         run: |
           node --import tsx src/db/cli.ts seed
-          npm run start -- --hostname 127.0.0.1 > /tmp/mingala-next.log 2>&1 &
+          npm run start -- --hostname 127.0.0.1 > /tmp/khanthman-next.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 45); do

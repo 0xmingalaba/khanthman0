@@ -1,5 +1,5 @@
 {
-  "name": "mingala-prediction-market",
+  "name": "khanthman-prediction-market",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,7 +12,7 @@
     "test:all": "npm run test && npm run test:integration",
     "db:migrate": "node --import tsx src/db/cli.ts migrate",
     "db:seed": "node --import tsx src/db/cli.ts seed",
-    "dev:pglite": "MINGALA_DB=pglite node --import tsx src/db/cli.ts seed && MINGALA_DB=pglite next dev",
+    "dev:pglite": "node scripts/dev-pglite.mjs",
     "test:postgres": "node --import tsx --test --test-reporter=spec --test-concurrency=1 'tests/integration/postgres-concurrency.test.ts'",
     "test:full": "npm run test && npm run test:integration && npm run test:postgres",
     "db:cleanup-idempotency": "node --import tsx src/db/cli.ts cleanup-idempotency",
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@fontsource/noto-sans-myanmar": "^5.2.6",
+    "@next/env": "^15.5.29",
     "next": "^15.5.6",
     "pg": "^8.23.1",
     "react": "^19.1.1",

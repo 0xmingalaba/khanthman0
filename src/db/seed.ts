@@ -156,9 +156,13 @@ export async function seedDevelopmentData(db: Database): Promise<{ markets: numb
 
   // Development accounts only. Passwords are printed so a developer can sign in,
   // and they exist only when the seed command is run explicitly.
+  // The seed identity was renamed during the Khant Hman rebrand. The existence
+  // check still counts the legacy `@dev.mingala.local` accounts so re-running
+  // the seed on a pre-rebrand development database does not create a duplicate
+  // set of dev users; fresh databases get the new identity and password.
   let users = 0;
   const existingUsers = await db.query<{ c: number }>(
-    "SELECT count(*)::int AS c FROM users WHERE email LIKE '%@dev.mingala.local'"
+    "SELECT count(*)::int AS c FROM users WHERE email LIKE '%@dev.khanthman.local' OR email LIKE '%@dev.mingala.local'"
   );
   if (existingUsers.rows[0].c === 0) {
     for (const [handle, role] of [
@@ -168,8 +172,8 @@ export async function seedDevelopmentData(db: Database): Promise<{ markets: numb
       ["admin", "admin"],
     ] as const) {
       const created = await registerUser(db, {
-        email: `${handle}@dev.mingala.local`,
-        password: "mingala-dev-password-2026",
+        email: `${handle}@dev.khanthman.local`,
+        password: "khanthman-dev-password-2026",
         displayName: `Dev ${handle}`,
         locale: "en",
       });
