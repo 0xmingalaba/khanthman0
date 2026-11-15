@@ -5,9 +5,9 @@ import "@fontsource/noto-sans-myanmar/600.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nan Htauk Prediction Market",
-  description: "Explore questions about the future with Nan Htauk Prediction Market. Virtual credits only.",
-  applicationName: "Nan Htauk",
+  title: "Khant Hman Prediction Market",
+  description: "Explore questions about the future with Khant Hman Prediction Market. Virtual credits only.",
+  applicationName: "Khant Hman",
 };
 
 export const viewport: Viewport = {

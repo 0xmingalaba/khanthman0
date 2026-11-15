@@ -25,7 +25,8 @@ export async function createPgliteDatabase(dataDir?: string): Promise<Database> 
   // PGlite creates its data directory but not missing PARENTS, so a fresh checkout
   // without `.data/` failed with ENOENT before it could do anything. Creating the path
   // recursively here fixes every caller at once, including `npm run dev:pglite` and the
-  // CI smoke test, which both point at `./.data/mingala` on a clean tree.
+  // CI smoke test, which resolve through ./config.ts (default ./.data/khanthman,
+  // with existing ./.data/mingala data discovered for backward compatibility).
   if (dataDir) await mkdir(dataDir, { recursive: true });
   const instance = dataDir ? new PGlite(dataDir) : new PGlite();
   await instance.waitReady;

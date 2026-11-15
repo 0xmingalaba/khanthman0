@@ -1,4 +1,4 @@
-# Nan Htauk Prediction Market — Implementation Roadmap
+# Khant Hman Prediction Market — Implementation Roadmap
 
 Status legend: **Completed** · **Partially completed** · **Not started** · **Blocked**
 

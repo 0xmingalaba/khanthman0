@@ -1,4 +1,4 @@
-# Nan Htauk Prediction Market — Production Readiness Checklist
+# Khant Hman Prediction Market — Production Readiness Checklist
 
 Status as of this branch. Nothing here has been deployed, and deployment requires explicit
 owner approval.
@@ -19,7 +19,7 @@ owner approval.
 
 1. `DATABASE_URL` for a managed PostgreSQL 15+ instance, with TLS.
 2. Run migrations: `npm run db:migrate` (idempotent, checksum-guarded).
-3. Remove `MINGALA_DB=pglite` from any deployed environment. PGlite is development-only;
+3. Remove `KHANTHMAN_DB=pglite` from any deployed environment. PGlite is development-only;
    `getDatabase()` throws if neither setting is present, so a misconfiguration fails loudly
    instead of silently using an ephemeral database.
 4. Set `NODE_ENV=production` so session cookies are issued with `Secure`.

@@ -51,7 +51,7 @@ function withDatabase(name: string): string {
 let counter = 0;
 
 /** Globally unique, lowercase, valid identifier. */
-export function uniqueDatabaseName(prefix = "mingala_test"): string {
+export function uniqueDatabaseName(prefix = "khanthman_test"): string {
   counter += 1;
   const random = Math.random().toString(36).slice(2, 8);
   return `${prefix}_${process.pid}_${counter}_${random}`.toLowerCase();

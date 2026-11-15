@@ -22,17 +22,17 @@ type PeerState = {
 };
 
 const globalScope = globalThis as typeof globalThis & {
-  __mingalaPeerAddressState__?: PeerState;
+  __khanthmanPeerAddressState__?: PeerState;
 };
 
 function peerState(): PeerState {
-  if (!globalScope.__mingalaPeerAddressState__) {
-    globalScope.__mingalaPeerAddressState__ = {
+  if (!globalScope.__khanthmanPeerAddressState__) {
+    globalScope.__khanthmanPeerAddressState__ = {
       storage: new AsyncLocalStorage<string | null>(),
       installed: false,
     };
   }
-  return globalScope.__mingalaPeerAddressState__;
+  return globalScope.__khanthmanPeerAddressState__;
 }
 
 /** Install the diagnostics-channel subscriber once per process. */

@@ -131,7 +131,7 @@ export function needsRehash(stored: string): boolean {
  * exist, so login timing does not reveal which emails are registered.
  */
 export async function dummyVerify(): Promise<void> {
-  await scrypt("mingala-dummy-password", randomBytes(SALT_BYTES), DEFAULT_PARAMS.keylen, {
+  await scrypt("khanthman-dummy-password", randomBytes(SALT_BYTES), DEFAULT_PARAMS.keylen, {
     N: DEFAULT_PARAMS.N,
     r: DEFAULT_PARAMS.r,
     p: DEFAULT_PARAMS.p,

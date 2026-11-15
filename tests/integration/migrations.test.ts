@@ -29,7 +29,7 @@ let dir: string;
 
 before(async () => {
   db = await createPgliteDatabase();
-  dir = await mkdtemp(join(tmpdir(), "mingala-migrations-"));
+  dir = await mkdtemp(join(tmpdir(), "khanthman-migrations-"));
 });
 
 after(async () => {

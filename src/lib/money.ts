@@ -1,5 +1,5 @@
 /**
- * Money primitives for Nan Htauk.
+ * Money primitives for Khant Hman.
  *
  * Hard rules (see docs/FINANCIAL-SPEC.md):
  *  - The atomic unit is the Pya. 1 MMK = 100 Pyas.

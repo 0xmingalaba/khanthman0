@@ -6,7 +6,8 @@
  *   node --import tsx src/db/cli.ts cleanup-idempotency # prune expired idempotency keys
  *   node --import tsx src/db/cli.ts reconcile           # verify the ledger sums to zero
  *
- * Requires DATABASE_URL (PostgreSQL) or MINGALA_DB=pglite (embedded, dev only).
+ * Requires DATABASE_URL (PostgreSQL) or KHANTHMAN_DB=pglite (embedded, dev
+ * only). The legacy MINGALA_DB=pglite is still accepted (see ./config.ts).
  *
  * `cleanup-idempotency` is intended for a scheduled job (cron / platform scheduler).
  * It is safe to run repeatedly and concurrently.
@@ -16,6 +17,7 @@ import { migrate } from "./migrate";
 import type { Database } from "./executor";
 import { seedDevelopmentData } from "./seed";
 import { cleanupIdempotencyKeys } from "./idempotency-retention";
+import { isPgliteMode, resolvePgliteDir } from "./config";
 
 async function open(): Promise<Database> {
   if (process.env.DATABASE_URL) {
@@ -24,10 +26,15 @@ async function open(): Promise<Database> {
     const { createPgDatabase } = await import("./pg-runtime");
     return createPgDatabase();
   }
-  if (process.env.MINGALA_DB === "pglite") {
-    return createPgliteDatabase(process.env.MINGALA_PGLITE_DIR || "./.data/mingala");
+  if (isPgliteMode()) {
+    // Same resolution as the app (src/db/index.ts): new env vars win, legacy
+    // vars still work, and existing ./.data/mingala data is discovered rather
+    // than silently replaced by an empty ./.data/khanthman database.
+    return createPgliteDatabase(resolvePgliteDir());
   }
-  throw new Error("Set DATABASE_URL or MINGALA_DB=pglite.");
+  throw new Error(
+    "Set DATABASE_URL or KHANTHMAN_DB=pglite (legacy MINGALA_DB=pglite is still accepted)."
+  );
 }
 
 async function main() {
