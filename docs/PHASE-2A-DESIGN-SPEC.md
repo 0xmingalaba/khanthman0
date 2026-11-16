@@ -1,6 +1,6 @@
 # Khant Hman — Phase 2A UI/UX Design Specification
 
-> **Status:** DRAFT FOR PRODUCT-OWNER REVIEW — not approved, not implemented. Revision 3 (2026-11-16): Codex round-2 findings (7) addressed; Owner Decision Register D-01…D-18 recorded PARKED/DEFERRED per owner instruction. See Appendix D (Revision history).
+> **Status:** DRAFT FOR PRODUCT-OWNER REVIEW — not approved, not implemented. Revision 4 (2026-11-16): Codex rounds 2–3 findings addressed (10); Owner Decision Register D-01…D-18 recorded PARKED/DEFERRED per owner instruction. See Appendix D (Revision history).
 > **Audience:** Product owner (review/approval), then implementation engineers.
 > **Scope of this document:** design and UX only. No application code, schema, seed, API, financial logic, build or deployment is authorized or performed by this file.
 > **Current phase reminder:** Phase 1 (working local web application) is **not** complete; Phase 2A implementation must not begin until its roadmap gates are satisfied (§16).
@@ -488,7 +488,7 @@ All pairs must hit **WCAG 2.2 AA**: 4.5:1 body text; 3:1 large text; **3:1 for n
 
 **Approved boundaries (do not expand):** presets **1,000 / 5,000 / 10,000 MMK**; intended owner preference — the preset tap **executes immediately** after server-side validation and a valid execution quote; separate approved product/technical spec required for execution semantics, quote freshness, safeguards, duplicate submissions, accidental taps, failure behavior.
 
-**UI (inert in 2A):** tab label “1-Tap” with badge “Soon”; body shows copy “Tap-to-buy with preset amounts. Coming soon.” and three disabled preset buttons (1,000 / 5,000 / 10,000 ကျပ်); disabled CTA. No requests fire. Keyboard focus allowed, `aria-disabled="true"`.
+**UI (inert in 2A):** tab label “1-Tap” with badge “Soon”; body shows copy “Tap-to-buy with preset amounts. Coming soon.” and three disabled preset buttons (1,000 / 5,000 / 10,000 ကျပ်); disabled CTA. No requests fire. Keyboard focus allowed via `aria-disabled="true"` **with the §12 activation guard** (no handler wired or an explicit no-op) — zero network calls, verifiable by test spy.
 
 **Required before build (spec, not this document):** execution path definition; quote object + TTL; slippage/impact policy; partial-fill policy; idempotency beyond client key (server dedup window); double-tap/300 ms debounce; offline/timeout UX; insufficient-credits path; confirmation-vs-instant final ruling; audit logging. Owner decisions D-02, D-03, D-16. **This spec does not define them.**
 
@@ -511,7 +511,7 @@ All pairs must hit **WCAG 2.2 AA**: 4.5:1 body text; 3:1 large text; **3:1 for n
 
 **Approved boundaries:** available to **all users** (never gate to “market makers”); **Split**: market-specific MMK collateral → **equal YES and NO shares, 1:1**; **Merge**: reverse; integral share counts (not currency); **not an order-book action** — a separate collateral/share conversion; accounting (collateral definition, debits/credits, share create/burn, atomicity, idempotency, ledger entries, validation, lifecycle restrictions) requires a separate approved specification.
 
-**UI (inert in 2A — static placement only):** a secondary full-width panel **below the order book** (proposal D-10) headed “Split / Merge (coming soon)” with explainer line, two disabled buttons “Split”/“Merge”, and one disabled integral-share input; `aria-disabled`; zero network calls; excluded from tab order of the ticket. Alternative placement (inside ticket as 4th mode) is **rejected** in this proposal — split/merge is not an order, and putting it in the ticket invites conflation with order-book execution.
+**UI (inert in 2A — static placement only):** a secondary full-width panel **below the order book** (proposal D-10) headed “Split / Merge (coming soon)” with explainer line, two disabled buttons “Split”/“Merge”, and one disabled integral-share input; `aria-disabled="true"` plus the §12 activation guard (no handler wired / explicit no-op) — zero network calls, verifiable by test spy; excluded from tab order of the ticket. Alternative placement (inside ticket as 4th mode) is **rejected** in this proposal — split/merge is not an order, and putting it in the ticket invites conflation with order-book execution.
 
 **Required before build:** collateral asset definition; per-market escrow/locking; create/burn journal rules; rounding (shares integral ⇒ collateral divisible by shares); atomicity & idempotency; failure recovery; UX for insufficient YES/NO balance on merge; disclosures; phase-gate verification. Owner decisions D-10, D-11. **This spec does not define accounting.**
 
@@ -616,7 +616,7 @@ Target: **WCAG 2.2 AA**. Baseline keeps existing skip-link, `lang` SSR, aria-pre
 | Colour-only | Never; icons/dots + text accompany colour (status, P&L signs, YES/NO) |
 | Errors | Label-associated errors, `aria-describedby`, summary box at top of form on failure (auth) |
 | Tables | Book/trades as real `<table>` with `<th>` scope; depth bars `aria-hidden` |
-| Disabled | `aria-disabled` for feature-gated inert controls (keeps focusability + announcement of Soon) vs `disabled` for transient states |
+| Disabled | Feature-gated inert controls: `aria-disabled="true"` **plus an activation guard** — no action handler attached at all, or the handler returns before any network call/side effect (pointer, Enter, Space and programmatic `.click()` all guarded). `aria-disabled` communicates state; it does **not** block activation. The zero-network-call requirement (§§9.1, 9.4) must be enforced/verified (e.g., no handler wired, or a fetch/api-client spy asserting zero calls in tests), never by the ARIA attribute alone. vs `disabled` for transient states (submitting/loading) |
 | Language | `html lang` per locale EXISTING; mixed-language content marked with inline `lang=` where needed |
 
 Interaction states matrix (every component): default · hover · focus-visible · active · disabled · `aria-busy`/loading · error (where applicable) · selected/pressed (segmented, chips, watch) · empty · skeleton. Component PRs must demonstrate all nine in review screenshots.
@@ -716,6 +716,8 @@ Decisions only the product owner can make. None of these are settled by this spe
 
 ### 16.2 Sequence
 
+> **The order shown here is a proposal only and is non-binding.** It is conditioned on D-18 (owner scheduling decision) and on the §16.1 gates; per D-18, no implementation may start — and no sequence may be treated as settled — until the owner decides.
+
 ```mermaid
 flowchart LR
   P1["Phase 1 complete<br/>owner verified"] --> SPEC["2A spec approved<br/>this document"]
@@ -740,7 +742,7 @@ flowchart LR
 
 ### 16.3 PR strategy
 
-One PR per surface, each self-contained: tokens+theme first; then Home; then Detail; then Portfolio; then Auth; each with EN/MY keys + tests + before/after screenshots + contrast report reference. No bundled “restyle everything” PR. Docs-only PRs (like this one) carry no code.
+**Proposed order — non-binding and explicitly conditioned on D-18 (owner sequencing decision) and the §16.1 gates.** If approved as proposed: one PR per surface, each self-contained — tokens+theme first; then Home; then Detail; then Portfolio; then Auth; each with EN/MY keys + tests + before/after screenshots + contrast report reference. No bundled “restyle everything” PR. Docs-only PRs (like this one) carry no code. Implementation must not proceed on the assumed order while D-18 is parked.
 
 ### 16.4 Risk register
 
@@ -765,7 +767,8 @@ One PR per surface, each self-contained: tokens+theme first; then Home; then Det
 
 - [ ] Token contrast report (light **and** dark) attached per §8.9 method: computed ratios for every token pair against every surface (§8.2 table) **plus** in-browser verification incl. hover/focus/disabled/error states. Meaningful boundaries (`--line-strong`) ≥ 3:1; text ≥ 4.5:1 (3:1 large). Any failing pair fixed before merge.
 - [ ] All new strings in `dictionary.ts` EN+MY; parity tests green; no untranslated literals (grep CI rule or manual review).
-- [ ] Tests pass: unit (money, localization, reservations), integration (order placement idempotency), e2e smoke (home → detail → place limit order against a PGlite-backed local/CI database, as `npm run test:integration` does, and against PostgreSQL for the `npm run test:postgres` gate) — no weakening CI; do not introduce Supabase or any new test service.
+- [ ] Automated DB/domain tests pass unmodified: unit (`npm test`, incl. money/localization/reservations), integration (`npm run test:integration`, PGlite), concurrency gate (`npm run test:postgres`, real PostgreSQL). These exercise database and domain behavior — **not** the browser UI journey.
+- [ ] Additionally, before merge: a **browser-level smoke** of home → market detail → place and cancel a limit order is performed and recorded (steps + screenshots in the PR). This repository has no browser-automation suite today (no Playwright/Cypress dependency); this is a **manual verification step**, not something `test:integration` covers. Introducing a browser-automation dependency would be an owner-approved dependency decision and is out of scope for this documentation PR. Do not introduce Supabase or any new external test service.
 - [ ] Viewport review at 1366×768, 1440×900, 390×844, 320 px — screenshots attached.
 - [ ] Keyboard-only walkthrough: nav → search → chips → card → ticket → place/cancel order → portfolio; skip link works.
 - [ ] Screen-reader spot check (NVDA or VoiceOver): status pill announces state; chips announce pressed; live region announces result count; errors announce.
@@ -844,4 +847,5 @@ From the 2026-11-15 audit (inline report; no saved artifacts): per-outcome rows 
 |---|---|---|---|
 | 1 | `fd481e4` | 2026-11-16 | Initial owner-review draft. |
 | 2 | `cd4aae9` | 2026-11-16 | Codex round 1 — seven findings: disclosure exemption in acceptance checklist; status filter marked unsupported (baseline has none); locale-prefixed nav links; `closing` relabelled “Earliest close date”; StatusPill mapped to the real public `MarketStatus` lifecycle states (`open`/`closed`/`proposed`/`disputed`/`resolved`/`voided`), invented `paused` removed, banners keyed to lifecycle; featured strip renamed “Highest open interest”; boundary tokens split (`--line` decorative vs `--line-strong` ≥ 3:1 meaningful) with a contrast-verification method/report requirement. Plus owner correction: test database reference corrected to PGlite (local/CI) and PostgreSQL (`test:postgres`); no Supabase. |
-| 3 | PR #13 (this revision) | 2026-11-16 | Codex round 2 — seven findings: (1) A-04 featured strip ranking source must be scoped/approved (slice ≠ global; `sort=activity` has no open-only filter) or omitted/labelled; (2) trading availability is `status === open` **and** `closeAt > now` (`isTradingAllowed`; server rejects with `market_closed`) — ticket, banners, outcome buttons and featured selection must treat past-close “open” markets as closed; (3) manual retry of an outcome-unknown submission must reuse the original idempotency key (fresh key per attempt defeats server dedup; see `MarketView.tsx:68`); (4) dark-mode inputs use theme-mapped `--input-surface` (`#ffffff`/`#182220`), never hard white with light `--text`; (5) homepage hero “Browse markets” CTA targets `/${locale}#markets` (feed anchor `id="markets"`), not a bare self-link; (6) “Buy Yes/No” outcome buttons also set the ticket action to BUY — label and action can never disagree; (7) `OutcomeRow` split into `full` (detail, with BUY action) and `compact` (cards, informational only) — no nested interactive controls inside the card link. **Decisions D-01…D-18 recorded PARKED/DEFERRED** per owner instruction; no decisions invented; gates unchanged. |
+| 4 | PR #13 (this revision) | 2026-11-16 | Codex round 3 — three findings: (1) §17.2 now distinguishes automated DB/domain suites (`npm test` / `test:integration` / `test:postgres`) from a required **manual browser-level smoke** of home → detail → place/cancel limit order — `test:integration` does not exercise the UI journey, and no browser-automation suite is assumed; (2) §16.2/§16.3 state the proposed PR order is non-binding and conditioned on D-18 plus the §16.1 gates; (3) feature-gated inert controls require an activation guard (no handler / explicit no-op before any network call, for pointer and keyboard activation) in addition to `aria-disabled`; ties §§9.1, 9.4 and 12 to a zero-network-call test spy. |
+| 3 | `8104a3b` | 2026-11-16 | Codex round 2 — seven findings: (1) A-04 featured strip ranking source must be scoped/approved (slice ≠ global; `sort=activity` has no open-only filter) or omitted/labelled; (2) trading availability is `status === open` **and** `closeAt > now` (`isTradingAllowed`; server rejects with `market_closed`) — ticket, banners, outcome buttons and featured selection must treat past-close “open” markets as closed; (3) manual retry of an outcome-unknown submission must reuse the original idempotency key (fresh key per attempt defeats server dedup; see `MarketView.tsx:68`); (4) dark-mode inputs use theme-mapped `--input-surface` (`#ffffff`/`#182220`), never hard white with light `--text`; (5) homepage hero “Browse markets” CTA targets `/${locale}#markets` (feed anchor `id="markets"`), not a bare self-link; (6) “Buy Yes/No” outcome buttons also set the ticket action to BUY — label and action can never disagree; (7) `OutcomeRow` split into `full` (detail, with BUY action) and `compact` (cards, informational only) — no nested interactive controls inside the card link. **Decisions D-01…D-18 recorded PARKED/DEFERRED** per owner instruction; no decisions invented; gates unchanged. |
