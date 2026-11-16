@@ -2413,3 +2413,259 @@ html[lang="my"] .virtual-ribbon {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================================
+   Phase 2A — Design-token and theme foundations (spec: docs/PHASE-2A-DESIGN-SPEC.md, §8)
+   -------------------------------------------------------------------------
+   STATUS: additive foundations only. No legacy surface is re-skinned in this
+   section's rollout: page PRs (spec §5/§6) migrate components one surface at
+   a time. Legacy rules above are untouched, so default rendering is
+   unchanged. Token values implement spec §8.2 — all contrast ratios were
+   computed at authoring time (see docs/PHASE-2A-CONTRAST-REPORT.md and
+   tests/unit/contrast.test.ts); they are NOT in-browser measurements.
+   ========================================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* Primitives — colour ramps live here; components consume semantics only. */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Myanmar", sans-serif;
+  --font-myanmar: "Noto Sans Myanmar", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Semantic colour tokens — LIGHT (spec §8.2) */
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f6f7f6;
+  --surface-3: #eceeeb;
+  --input-surface: #ffffff;
+  --line: #e3e7e3;          /* decorative separators only; below 3:1 by design */
+  --line-strong: #7d8b83;   /* meaningful boundaries; ≥3:1 */
+  --text: #101a19;
+  --muted: #5c6f6b;
+  --accent: #0e7767;
+  --accent-hover: #095c51;
+  --accent-soft: #e9f3ee;
+  --on-accent: #ffffff;
+  --up: #0e7767;
+  --down: #b3261e;
+  --danger-surface: #fdecea;
+  --warning-surface: #f6ecd4;
+  --warning-ink: #6b4e12;
+  --focus-ring: #0e7767;
+  --scrim: rgba(16, 26, 26, 0.45);
+
+  /* Spacing scale (8px grid, 4px half-steps) — spec §8.4 */
+  --space-1: 2px;   --space-2: 4px;   --space-3: 8px;   --space-4: 12px;
+  --space-5: 16px;  --space-6: 20px;  --space-7: 24px;  --space-8: 32px;
+  --space-9: 40px;  --space-10: 56px; --space-11: 72px;
+
+  /* Radius — spec §8.4 */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* Type scale (px / line-height) — spec §8.3 */
+  --text-caption: 12px; --leading-caption: 1.4;
+  --text-meta: 13px;    --leading-meta: 1.5;
+  --text-body: 14.5px;  --leading-body: 1.55;
+  --text-lead: 16px;    --leading-lead: 1.5;
+  --text-h4: 20px;      --leading-h4: 1.35;
+  --text-h3: 24px;      --leading-h3: 1.25;
+  --text-h2: 30px;      --leading-h2: 1.15;
+  --text-h1: 40px;      --leading-h1: 1.08;
+
+  /* Motion — spec §7/§12 (≤160ms) */
+  --motion-fast: 120ms;
+  --motion-base: 160ms;
+}
+
+/* Semantic colour tokens — DARK remap (spec §8.2). Same names, remapped values. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0e1514;
+  --surface: #131c1b;
+  --surface-2: #182220;
+  --surface-3: #1f2a27;
+  --input-surface: #182220;
+  --line: #25322f;
+  --line-strong: #67766f;
+  --text: #e9edeb;
+  --muted: #93a49f;
+  --accent: #3dd598;
+  --accent-hover: #57d3a1;
+  --accent-soft: #16302a;
+  --on-accent: #05231a;
+  --up: #3dd598;
+  --down: #ff8a80;
+  --danger-surface: #2a1714;
+  --warning-surface: #2a2413;
+  --warning-ink: #e0c073;
+  --focus-ring: #3dd598;
+  --scrim: rgba(0, 0, 0, 0.6);
+}
+
+/* Focus-visible ring — token-backed; layers over legacy outlines, never removes them. */
+.kh-focus-visible:focus-visible,
+.kh-btn:focus-visible,
+.kh-input:focus-visible,
+.kh-select:focus-visible,
+.kh-theme-toggle:focus-visible,
+.kh-chip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Numeric alignment — spec §6.C C-12 / §8.3 */
+.kh-tabular { font-variant-numeric: tabular-nums; }
+
+/* Container — spec §8.7 */
+.kh-container {
+  width: min(1120px, 100% - 2 * clamp(16px, 3vw, 32px));
+  margin-inline: auto;
+}
+
+/* Panels / surfaces — flat, 1px meaningful border, no shadow (spec §7/§8.4) */
+.kh-panel {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.kh-panel[data-tone="subtle"] { background: var(--surface-2); }
+
+/* Buttons — spec §8.6. Sizes: sm 36 / md 44 / lg 48. */
+.kh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-width: 88px;
+  height: 44px;
+  padding: 0 var(--space-6);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font: inherit;
+  font-weight: 600;
+  font-size: var(--text-meta);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--motion-base), border-color var(--motion-base), color var(--motion-base);
+  white-space: nowrap;
+}
+.kh-btn--sm { height: 36px; padding: 0 var(--space-5); }
+.kh-btn--lg { height: 48px; padding: 0 var(--space-7); font-size: var(--text-body); }
+
+.kh-btn--primary { background: var(--accent); color: var(--on-accent); }
+.kh-btn--primary:hover { background: var(--accent-hover); }
+
+.kh-btn--secondary {
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+.kh-btn--secondary:hover { background: var(--surface-3); }
+
+.kh-btn--ghost { background: transparent; color: var(--text); }
+.kh-btn--ghost:hover { background: var(--surface-3); }
+
+.kh-btn--danger { background: transparent; color: var(--down); border-color: var(--line-strong); }
+.kh-btn--danger:hover { background: var(--danger-surface); }
+
+/* Disabled — explicit treatment, never an opacity wash (spec §8.6):
+   surface-3 fill + muted ink, ≥4.5:1 in both themes (see contrast report). */
+.kh-btn:disabled,
+.kh-btn[aria-disabled="true"] {
+  background: var(--surface-3);
+  border-color: transparent;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* Inputs — spec §8.6. Height 44, label above, error below. */
+.kh-input,
+.kh-select {
+  height: 44px;
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--input-surface);
+  color: var(--text);
+  padding: 0 var(--space-5);
+  font: inherit;
+  font-size: var(--text-body);
+  transition: border-color var(--motion-base);
+}
+.kh-input::placeholder { color: var(--muted); }
+.kh-input:hover,
+.kh-select:hover { border-color: var(--muted); }
+.kh-input:focus,
+.kh-select:focus { border-color: var(--accent); outline: 0; }
+.kh-input[aria-invalid="true"],
+.kh-select[aria-invalid="true"] { border-color: var(--down); }
+.kh-input:disabled,
+.kh-select:disabled {
+  background: var(--surface-3);
+  border-color: transparent;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.kh-field-label { display: block; font-size: var(--text-meta); font-weight: 600; margin-bottom: var(--space-2); color: var(--text); }
+.kh-field-help  { display: block; font-size: var(--text-caption); color: var(--muted); margin-top: var(--space-2); }
+.kh-field-error { display: block; font-size: var(--text-caption); color: var(--down); margin-top: var(--space-2); }
+
+/* Chips — spec §8.4 (pill radius) */
+.kh-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-5);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.kh-chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+:root[data-theme="dark"] .kh-chip[aria-pressed="true"] { color: var(--accent); }
+
+/* Inert / feature-gated control with marker — spec §12 "Disabled".
+   The badge communicates "not available yet"; the control carries NO
+   activation handler (activation guard). */
+.kh-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 44px;
+  min-width: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  cursor: not-allowed;
+}
+.kh-theme-toggle-badge {
+  font-size: var(--text-caption);
+  line-height: 1;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  padding: 3px 6px;
+  color: var(--muted);
+}
+
+/* Motion preference — spec §7/§12 (transitions ≤160ms; honor reduced motion) */
+@media (prefers-reduced-motion: reduce) {
+  .kh-btn, .kh-input, .kh-select, .kh-chip { transition: none; }
+}

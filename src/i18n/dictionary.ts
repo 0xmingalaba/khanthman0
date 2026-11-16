@@ -39,6 +39,14 @@ const en = {
     moreNav: "More navigation",
     skipToContent: "Skip to markets",
   },
+  theme: {
+    // NOTE (D-17): Burmese copy is proposed, not native-reviewed yet.
+    toggleToLight: "Switch to light mode",
+    toggleToDark: "Switch to dark mode",
+    soon: "Soon",
+    toggleSoon:
+      "Theme switching arrives with the Phase 2A page rollout. Full Light/Dark coverage is tracked in the Phase 2A plan.",
+  },
   hero: {
     eyebrow: "A MARKETPLACE FOR WHAT'S NEXT",
     title: "Make your view count",
@@ -225,6 +233,14 @@ const my: DictionaryShape = {
     closeMenu: "မီနူးပိတ်ရန်",
     moreNav: "အခြားလမ်းညွှန်များ",
     skipToContent: "ဈေးကွက်များသို့ ကျော်သွားရန်",
+  },
+  theme: {
+    // မှတ်ချက် (D-17): မြန်မာစာသားများကို native review မပြုလုပ်ရသေးပါ။
+    toggleToLight: "အလင်းမုဒ်သို့ ပြောင်းရန်",
+    toggleToDark: "အမှောင်မုဒ်သို့ ပြောင်းရန်",
+    soon: "မကြာမီ",
+    toggleSoon:
+      "Phase 2A page rollout နှင့်အတူ အမှောင်/အလင်းမုဒ် ပြောင်းနိုင်ပါမည်။ အပြည့်အဝ အကျုံးဝင်မှုကို Phase 2A အစီအစဉ်တွင် ခြေရာခံထားပါသည်။",
   },
   hero: {
     eyebrow: "နောက်လာမည့်အရာအတွက် ဈေးကွက်",
