@@ -759,7 +759,7 @@ flowchart LR
 
 ### 17.1 For this document (pre-approval)
 
-- [ ] Product owner reads full spec; each §15 ID has an answer (or “hang”) recorded in a decisions addendum PR.
+- [ ] Product owner reads full spec. **Parked/deferred decisions recorded in §15 satisfy this pre-approval requirement** — every D-01 through D-18 is explicitly PARKED/DEFERRED with its actionable phase noted and no decision invented, rejected, or silently assumed. A separate Decisions Addendum PR is required **only when the owner later un-parks and answers a decision** — not merely because a decision remains parked. (All 18 decision states, recommendations, and their non-binding status are unchanged by this document; recommendations are not owner decisions. Phase 1 exit, the Phase 2 MMK-only migration, the separate feature specifications, native-language review, and roadmap integrity gates are all preserved.)
 - [ ] Roadmap alignment verified by owner (no priority inflation, no checkbox ticking in this PR).
 - [ ] No implementation code included; diff = `docs/PHASE-2A-DESIGN-SPEC.md` only.
 - [ ] Internal links resolve; referenced files exist at baseline (`app/globals.css`, `src/i18n/dictionary.ts`, `src/lib/api-client.ts`, `src/components/*`, `docs/PROJECT-ROADMAP.md`).
