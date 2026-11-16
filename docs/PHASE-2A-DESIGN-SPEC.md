@@ -85,7 +85,7 @@ Baseline file paths are cited for traceability. “Exists” reflects source-cod
 | Aspect | State |
 |---|---|
 | Exists | Search (client `q=` param → `/api/markets?q=`), category chips, sort (`closing` default), `aria-pressed` chips, `market-results-meta` live region |
-| Missing | Volume/liquidity (`MarketSummary` has **no** such fields), price-direction arrows, 24h movement; sort labels are misleading (`newest` shows "Status", `activity` shows "Open interest" — check `HomeView` mapping and relabel) |
+| Missing | Volume/liquidity (`MarketSummary` has **no** such fields), price-direction arrows, 24h movement; sort labels are misleading (verified: `newest` renders the `status` string, `activity` renders the `openInterest` string — `src/components/HomeView.tsx` option list and `src/domain/markets.ts` order mapping, inspected 2026-11-16) |
 | Redesign | Card density (grid → tighter rows); chips → compact segmented chips; card grid 2-col at desktop → 3-col ≥1280 PROPOSED; hover shadows → flat border transition |
 | Preserve | Chip `aria-pressed`, live region announcements, debounced search (250 ms) |
 
@@ -222,12 +222,12 @@ Layouts below are **proposals requiring implementation verification**; no device
 
 | ID | Requirement | Status |
 |---|---|---|
-| A-01 | Header keeps: brand lockup, centred search (≥640 px), nav links (Explore→`/`, Portfolio when signed in, How you win), locale switcher, auth actions (Sign in / Sign up or balance pill + logout). Add **theme toggle** (Light/Dark) to primary nav, right of locale switcher (placement is roadmap-fixed: “discoverable from the primary navigation”, 2A.1). Toggle must have `aria-pressed`/`aria-label` bilingual; persistence required by 2A.5 (mechanism = D-08). | CONFIRMED requirement (roadmap) + PROPOSED details |
+| A-01 | Header keeps: brand lockup, centred search (≥640 px), nav links (Explore → **`/${locale}`** — never `/`, which 307-redirects to `/my` and would switch English users to Burmese — Portfolio → `/${locale}/portfolio`, How you win → `/${locale}/how-it-works`), locale switcher, auth actions (Sign in / Sign up or balance pill + logout). Add **theme toggle** (Light/Dark) to primary nav, right of locale switcher (placement is roadmap-fixed: “discoverable from the primary navigation”, 2A.1). Toggle must have `aria-pressed`/`aria-label` bilingual; persistence required by 2A.5 (mechanism = D-08). | CONFIRMED requirement (roadmap) + PROPOSED details |
 | A-02 | Mobile header (≤820 px): brand + search icon + theme toggle + locale + hamburger. Search collapses into an expandable bar (not a hidden unrecoverable feature). | PROPOSED |
-| A-03 | Hero must be compact (≤ 240 px desktop incl. sub-line); single sentence promise + one primary CTA (“Browse markets”) and one secondary (“How it works”). No giant illustration; existing hot-topics carousel may **not** be a permanent fixture — keep only if it degrades to ≤ 200 px. | PROPOSED |
-| A-04 | Featured strip shows up to 3 highest-open-interest open markets (reuse existing data) with question, YES probability, close time. Clearly labelled as featured, deterministic, no manual curation. | PROPOSED |
+| A-03 | Hero must be compact (≤ 240 px desktop incl. sub-line); single sentence promise + one primary CTA (“Browse markets” → `/${locale}`) and one secondary (“How it works” → `/${locale}/how-it-works`). All in-app links are locale-prefixed; never link to `/` for navigation. No giant illustration; existing hot-topics carousel may **not** be a permanent fixture — keep only if it degrades to ≤ 200 px. | PROPOSED |
+| A-04 | Featured strip shows up to 3 highest-open-interest **open** markets (reuse existing data; client-side filter `status === "open"` on the existing payload — the catalogue response includes `status`, so no server change is needed) with question, YES probability, close time. Label must read “Highest open interest” (or Burmese equivalent) — never “Most active”, “Trending” or similar, which would imply volume/activity data that does not exist. Deterministic, no manual curation. | PROPOSED |
 | A-05 | Category panel lists categories with counts; selecting a chip filters feed. Keep existing chip behaviour (`aria-pressed`), move panel to a horizontally-scrollable chip rail on <1100 px. | EXISTING behavior + PROPOSED presentation |
-| A-06 | Sort control: rename labels to honest ones — **“Closing soon” (`closing` → `close_at ASC`), “Newest” (`newest` → `created_at DESC`), “Most open interest” (`activity` → `open_interest DESC`)**; the sort option↔server mapping is EXISTING and stays identical. (Currently `newest` is labelled with the `status` string and `activity` with the `openInterest` string — relabeling only, no behavior change.) | PROPOSED relabel (logic EXISTING) |
+| A-06 | Sort control: rename labels to accurate ones — **“Earliest close date” (`closing` → `close_at ASC`)**, “Newest” (`newest` → `created_at DESC`), “Most open interest” (`activity` → `open_interest DESC`); the sort option↔server mapping is EXISTING and stays identical (UI-only change, no server change in this PR). **Do not label `closing` as “Closing soon”: the current query applies no status filter, so closed, proposed, disputed, resolved or voided markets with past `close_at` dates sort before future open markets.** True “Closing soon” semantics (open-only) requires the server status filter that does not yet exist — see B-03/D-14. (Today `newest` is labelled with the `status` string and `activity` with the `openInterest` string — relabeling only, no behavior change.) | PROPOSED relabel (logic EXISTING; accuracy caveat) |
 | A-07 | Market card content (dense): category tag (small caps), question (2-line clamp, bilingual), price line: `Yes {p}%` + thin probability bar, NO price implied, footer row: `Open interest {n}` · `OI stake mmk?` (omit) · `Closes {relative}` + watch-toggle. **No volume/24h/liquidity numbers — data does not exist.** | PROPOSED |
 | A-08 | Empty results: illustration-free flat empty state with headline + secondary action ("Clear filters"). Error: message + Retry (existing endpoints). Loading: 6 skeleton cards matching card metrics. | EXISTING states, restyle |
 | A-09 | Watchlist remains device-local localStorage (`khanthman-watchlist-v1`); PROPOSED: optionally account-synced later — not Phase 2A. | EXISTING / PROPOSED(later) |
@@ -253,7 +253,7 @@ Phase 2A keeps a **single unified listing surface** (Home feed). Dedicated searc
 |---|---|---|
 | B-01 | Filters composable: category chip ∧ search query ∧ sort. Changing any control re-queries `/api/markets` with same params as current implementation. | EXISTING |
 | B-02 | Result count announced via `aria-live="polite"` (keep existing live region). | EXISTING |
-| B-03 | Status filter (All / Open / Closing week / Resolved) — only listed filters backed by server query params may ship; the current API supports `status`; “Closing week” requires query support — mark MISSING-DATA/ENG, else omit in 2A. | OPEN DECISION D-14 |
+| B-03 | Status filter (All / Open / Closing week / Resolved) — **not supported at the inspected baseline.** `GET /api/markets` parses only `category`, `q`, `sort`, `limit`, `offset` (no `status` param), `ListOptions` has no status field, and `listMarkets` returns publicly visible markets (`status NOT IN ('draft','pending_review')`) with no state filter. A status filter therefore requires server/domain work and new query support — it is **not** a UI-only control and must not ship in 2A. Closest in-scope behavior is client-side filtering of the fetched payload by its existing `status` field, which is unreliable across pagination (`limit`/`offset`) and is therefore also not sufficient; treat all status filters as future work, blocked on D-14. | BLOCKED / future work (D-14 OPEN) |
 | B-04 | On mobile, chips rail horizontally scrollable with snap; sort collapses into 44 px select. | PROPOSED |
 | B-05 | Empty state offers reset (“Show all markets”). Error keeps Retry. | EXISTING pattern |
 | B-06 | Pagination: keep fetch-all (current catalogue is small); if server caps response, add “Load more” button (not infinite scroll) — implementation decision after API audit. | PROPOSED |
@@ -276,13 +276,13 @@ Phase 2A keeps a **single unified listing surface** (Home feed). Dedicated searc
 | ID | Requirement | Status |
 |---|---|---|
 | C-01 | Breadcrumb (Home / category / question) retained. | EXISTING |
-| C-02 | H1 question (bilingual), category tag, `StatusPill` (Open / Closed / Resolved / Paused). Status text must not misuse “Buy/Closes” semantics — fix the pill to show the market state (`open`/`closed`/`resolved`), not actions. | PROPOSED (copy fix) |
+| C-02 | H1 question (bilingual), category tag, `StatusPill` showing the **actual public lifecycle state**. `MarketStatus` (`src/domain/market-lifecycle.ts`) is `draft`, `pending_review`, `open`, `closed`, `proposed`, `disputed`, `resolved`, `voided`; publicly visible (non-draft, non-pending_review) states are **open, closed, proposed, disputed, resolved, voided**, and only `open` accepts orders. Status text must not misuse “Buy/Closes” semantics (the current pill renders `open` → `t.market.buy`, a copy bug) and must stay a lifecycle-state indicator, never a trading action. See §7 StatusPill for the full variant set. | PROPOSED (copy fix) |
 | C-03 | **Outcome rows**: one shared `OutcomeRow` per outcome — name (Yes/No), probability %, implied price (legacy display per current data), and a primary button (“Buy Yes” / “Buy No”) that sets the ticket outcome and focuses it. Rows must be identical across cards/detail. | PROPOSED |
 | C-04 | Chart area: price-probability history slot. **Not buildable in 2A** — no snapshot collection, no history endpoint. Reserve a labelled “Chart coming soon” slot **only if** owner approves placeholder UX; otherwise omit entirely. Do not fake a chart. | D-05 OPEN DECISION |
 | C-05 | About/Description (bilingual), Rules, Resolution criteria, Sources (external links, `noopener noreferrer nofollow`) in this order, then order book. | EXISTING |
 | C-06 | Order book: two columns (YES/NO), max 8 levels (EXISTING), scaled depth bars, “Empty” copy when side empty. Keep ≤ 8 with “Show more” expander PROPOSED. | EXISTING + PROPOSED |
 | C-07 | Recent trades: side, price, qty, time (EXISTING). Add “Trade history is virtual-credit only” microcopy under the table. | PROPOSED |
-| C-08 | Closing/resolution info line: “Closes {date, relative}” + “Resolves per rules above” link. Resolved markets: banner “This market has resolved ({outcome})” + disabled trading + payout note — but resolution payout is **not implemented** (RESOLUTION-DESIGN) → banner copy must not promise payout timing until approved. | BLOCKED copy (D-07) |
+| C-08 | Closing/resolution info line: “Closes {date, relative}” + “Resolves per rules above” link. Non-open markets render informational banners keyed to lifecycle state: `closed` (“Trading closed — awaiting resolution”), `proposed` (“Resolution proposed — under review”), `disputed` (“Under dispute — awaiting review”), `resolved` (“This market has resolved ({outcome})”), `voided` (“This market was voided”). Trading is disabled whenever `status !== "open"` (per `isTradingAllowed`). Resolution payout is **not implemented** (RESOLUTION-DESIGN.md) → no banner may promise payout timing or mechanics until approved. | BLOCKED copy (D-07) |
 | C-09 | Comments: **not implemented**; do not add in Phase 2A. Defer to later-MVP/future phase pending owner decision + moderation plan (D-04). Current page has none. | OPEN DECISION D-04 |
 | C-10 | Aside: `OrderTicket` (all behaviour EXISTING; visual redesign only). Sticky on ≥1280 px within the two-column grid. | PROPOSED |
 | C-11 | Mobile: single column — breadcrumb → H1/category/status → outcome rows (prices + buttons) → compact ticket (collapsible sections) → About/Rules → book/trades. Primary action visible without scroll on 390×844 (target ≤ 420 px from top incl. header). | PROPOSED |
@@ -347,7 +347,7 @@ See §9 for the full four-feature spec. Key page-level rules:
 
 ## 7. Shared component specifications
 
-Common rules for all: 8 px spacing grid; `border-radius: var(--radius)` (8 px) except chips (999 px); 1 px `var(--line)` borders; **no shadows** (flat) except focus rings; transitions ≤ 160 ms; `prefers-reduced-motion` respected; focus-visible 2 px accent ring offset 2 px; colour tokens only from §8 (never raw hex in components).
+Common rules for all: 8 px spacing grid; `border-radius: var(--radius)` (8 px) except chips (999 px); control boundaries use 1 px `var(--line-strong)` (meaningful boundaries, ≥ 3:1 — see §8.2/§8.9); decorative separators use 1 px `var(--line)` only where they are **not** the sole means of identifying a control or region boundary; **no shadows** (flat) except focus rings; transitions ≤ 160 ms; `prefers-reduced-motion` respected; focus-visible 2 px accent ring offset 2 px; colour tokens only from §8 (never raw hex in components).
 
 | Component | Purpose | Key specs | Pages |
 |---|---|---|---|
@@ -356,7 +356,7 @@ Common rules for all: 8 px spacing grid; `border-radius: var(--radius)` (8 px) e
 | `MarketCard` | Catalogue unit | Padding 12–14 px; category tag 11 px small caps; question 14.5/1.35 clamp-2; YES row (price %+track); meta row (OI, closes) 12 px; entire card ↔ `/market/[slug]`; hover = border colour change only | Home |
 | `OutcomeRow` | Buy Yes/No | 56 px row: label (Yes/No 15 medium), probability %, implied price, 48 px? button “Buy Yes/No”; states: default/hover/focus/active; disabled when market not open | Detail, (cards compact variant later) |
 | `PriceProb` | Price+% display | Price large (17–20 semibold tabular) + `{v}%`; probability track 4 px, fill `var(--accent)`; NO row identical; used inline in card + detail + ticket | Cards, Detail |
-| `StatusPill` | Market state | Pill 24 px, 12 px text, dot; variants open (green), closed (amber), resolved (neutral), paused (grey); always text+dot, not colour-only | Detail, Cards |
+| `StatusPill` | Market lifecycle state (never a trading action) | Pill 24 px, 12 px text, dot; one variant per **public** `MarketStatus`: `open` → green “Open”; `closed` → amber “Closed” (awaiting resolution proposal); `proposed` → blue/neutral “Proposed” (resolution proposed, under review); `disputed` → warning orange “Disputed” (under dispute); `resolved` → neutral solid “Resolved” (final); `voided` → muted grey “Voided” (final). `draft`/`pending_review` are never publicly visible and need no public variant. No `paused` state exists — do not invent one. Always text+dot, never colour-only; final states show a non-interactive treatment. | Detail, Cards |
 | `OrderBook` | Depth display | 2-col grid gap 12; header “Yes / No”; ≤8 rows; bid/ask columns tint `rgba` of accent at low alpha; depth bar `transform-origin:left` transition 160 ms; empty copy per side | Detail |
 | `OrderTicket` | Trade entry | Container 320–360 px aside; surface `var(--surface)`; header “Place order” + mode tabs; body padding 14; summary 2×2 mini-grid; CTA full-width 48 px; max height none; sticky ≥1280 px; disabled state styling; message area `role="status"` | Detail |
 | `TradeModeTabs` | Feature switch | Segmented control, 3 segments, 40 px; order fixed: 1-Tap, Market, Limit; 1-Tap/Market disabled with “Soon” badge; keyboard: roving tabindex, arrow keys | Detail |
@@ -385,7 +385,9 @@ Three layers; components consume **semantic** tokens only:
 
 Dark theme = same semantic names, remapped primitive values, activated via `:root[data-theme="dark"]` (or `prefers-color-scheme` + `data-theme` stamp set before paint to avoid FOUC). Roadmap 2A.1 fixes the requirement that a user-accessible Light/Dark switch in the **primary navigation** exists and that Dark Mode covers all listed surfaces consistently; roadmap 2A.5 acceptance requires the choice to persist. The owner decision still needed is the **persistence mechanism** (localStorage vs cookie vs account preference) and the no-flash strategy — **D-08**. **D-09** only sequences the work inside Phase 2A (same PRs vs immediate fast-follow); it cannot remove dark coverage from 2A without a roadmap edit, which this spec does not authorize.
 
-### 8.2 Colour tokens (PROPOSED values — contrast must be verified with tooling before merge)
+### 8.2 Colour tokens
+
+> **Evidence status of every value in this table:** PROPOSED. Ratios quoted in this table were **computed at authoring time with the WCAG 2.x relative-luminance formula**, not measured in a rendered browser. Nothing in this section is a measured pass. In-browser verification (both themes, all interactive states) with a written report is required before any implementation PR merges — see §8.9.
 
 | Semantic | Light | Dark | Notes |
 |---|---|---|---|
@@ -393,8 +395,8 @@ Dark theme = same semantic names, remapped primitive values, activated via `:roo
 | `--surface` | `#ffffff` | `#131c1b` | panels on canvas |
 | `--surface-2` | `#f6f7f6` | `#182220` | subtle fill (chips, inputs? no—inputs keep white) |
 | `--surface-3` | `#eceeeb` | `#1f2a27` | hover fill |
-| `--line` | `#e3e7e3` | `#25322f` | 1 px borders/separators |
-| `--line-strong` | `#cdd4cd` | `#35443f` | focused/active borders |
+| `--line` | `#e3e7e3` | `#25322f` | **Decorative separators only** — computed ≈1.25:1 (light) / ≈1.39:1 (dark); below 3:1 by design; never the only identifier of a control/region boundary |
+| `--line-strong` | `#7d8b83` | `#67766f` | **Meaningful boundaries** (control/card/input borders, focus adjacency) — computed ≈3.56:1 (light, on `#ffffff`; ≈3.32:1 on `--surface-2`) / ≈3.87:1 (dark, on `#0e1514`; ≈3.64:1 on `--surface`, ≈3.41:1 on `--surface-2`). Clears 3:1 non-text contrast |
 | `--text` | `#101a19` | `#e9edeb` | primary ink |
 | `--muted` | `#5c6f6b` | `#93a49f` | secondary text (≥4.5:1 on both canvases PROPOSED) |
 | `--accent` | `#0e7767` | `#3dd598` | brand green; dark brightened for contrast |
@@ -431,7 +433,7 @@ Scale (px / line-height): `12/1.4` caption · `13/1.5` meta · `14.5/1.55` body 
 
 - Spacing scale: `2 4 8 12 16 20 24 32 40 56 72` px (8 px grid, 4 px half-steps).
 - Radius: `--radius-sm 6`, `--radius 8`, `--radius-lg 12`, `--radius-pill 999`.
-- Borders: `1px solid var(--line)`; strong = `--line-strong`. Dividers inside rows = `--line`.
+- Borders: meaningful control/card/input boundaries = `1px solid var(--line-strong)` (≥ 3:1); decorative dividers inside rows and between non-interactive regions = `var(--line)` (subtle, never the sole boundary cue). Depth bars and probability tracks convey values with a redundant length cue and are not subject to the 3:1 rule.
 - Elevation: none. Overlays/dialogs: scrim + 12 px radius. Focus: ring (§8.2), never shadow.
 - Card paddings: 12 (dense) – 16 (panel). Row min-heights: 40 (tight) / 44 (touch default) / 56 (outcome rows).
 
@@ -441,9 +443,9 @@ CSS references `Manrope` (wordmark/headings), `DM Sans` (body), and Georgia (ser
 
 ### 8.6 Inputs and buttons
 
-**Buttons — sizes:** `sm` 36 px h (icon/compact), `md` 44 px (default), `lg` 48 px (primary CTA / full-width ticket CTA). Min width 88 px; padding 0 16/20/24. **Variants:** `primary` (accent fill, on-accent ink), `secondary` (surface-2 fill, line border, text ink), `ghost` (transparent, hover surface-3), `danger` (transparent, danger ink; danger solid only for irreversible confirms), `quiet` (link-styled). States: default / hover (fill darken 1 step) / active (translateY(1px) for tactility? — flat: darken only) / focus-visible ring / `aria-busy` spinner (replace label with spinner+"…") / disabled (40% opacity + `not-allowed`). Icon buttons 40–44 px with `aria-label`.
+**Buttons — sizes:** `sm` 36 px h (icon/compact), `md` 44 px (default), `lg` 48 px (primary CTA / full-width ticket CTA). Min width 88 px; padding 0 16/20/24. **Variants:** `primary` (accent fill, on-accent ink), `secondary` (surface-2 fill, `--line-strong` border, text ink), `ghost` (transparent, hover surface-3), `danger` (transparent, danger ink; danger solid only for irreversible confirms), `quiet` (link-styled). States: default / hover (fill darken 1 step) / active (flat: darken only; no transform) / focus-visible ring / `aria-busy` spinner (replace label with spinner+"…") / disabled (40% opacity + `not-allowed`). Icon buttons 40–44 px with `aria-label`.
 
-**Inputs —** height 44; radius 8; 1 px `--line`, hover `--line-strong`, focus: `--accent` border + ring; label above input (12–13 px medium); help/error text below (12 px; error = down-colour + `role="alert"`); numeric inputs right-aligned tabular; selects styled natively with custom chevron bg (no library); segmented control = joined buttons with accent-soft selected state; steppers = 40 px square buttons each side of value.
+**Inputs —** height 44; radius 8; 1 px `--line-strong` boundary (meaningful), hover darkens border, focus: `--accent` border + ring; label above input (12–13 px medium); help/error text below (12 px; error = down-colour + `role="alert"`); numeric inputs right-aligned tabular; selects styled natively with custom chevron bg (no library); segmented control = joined buttons with accent-soft selected state; steppers = 40 px square buttons each side of value.
 
 ### 8.7 Responsiveness breakpoints
 
@@ -455,7 +457,9 @@ Card question clamp 2 lines; list row gap 8–12 px; section gap 24 (desktop) / 
 
 ### 8.9 Contrast & verification requirement
 
-All pairs must hit **WCAG 2.2 AA**: 4.5:1 body text, 3:1 large text/UI/borders-meaningful. Implementation PR must include a token-contrast report (script or manual tool). Any pair failing is fixed before merge — never by weakening the rule.
+All pairs must hit **WCAG 2.2 AA**: 4.5:1 body text; 3:1 large text; **3:1 for non-text/UI components and meaningful boundaries** (WCAG 1.4.11). Meaningful component boundaries are `--line-strong` and must clear 3:1 against every canvas/surface they sit on (`--bg`, `--surface`, `--surface-2`, `--surface-3`, both themes); decorative `--line` is exempt only when the boundary it marks is also identified by other means (label, fill, position, affordance) and is never the sole cue.
+
+**Verification method (required before implementation merges):** (1) compute WCAG 2.x relative-luminance ratios for every token pair in both themes and record them in the implementing PR (script or documented tool — e.g., a small luminance script or axe DevTools/contrast checker); (2) in-browser spot check of the rendered pairs (Chrome DevTools contrast, both themes, including hover/focus/disabled/error states); (3) attach a contrast report listing each pair, its ratio and pass/fail. Any failing pair is fixed by adjusting the token — never by weakening this rule or by calling a meaningful boundary “decorative”. Token values in this spec are unmeasured proposals until that report exists.
 
 ## 9. Trading-interface presentation (the four features)
 
@@ -592,7 +596,7 @@ Touch targets ≥ 44 px (chips ≥ 40 with 4 px gaps); no hover-only affordances
 | L-11 | Mixed-script strings (English terms inside Burmese UI, e.g. “order book”) keep Myanmar script adjacent spacing; glossary `docs/glossary.md` PROPOSED to freeze terms (Yes/No = ဟုတ်/မဟုတ်? — **do not pick translations here**; translation needs owner/native review). | OPEN (D-17 folded into implementation note) |
 | L-12 | Virtual-credit disclosure string is fixed (`notice.virtual`) and never reworded per page. | EXISTING/CONFIRMED |
 
-New-key starter list (illustrative, all must be translated): `theme.toggle.light/dark`, `trade.mode.oneTap/market/limit`, `splitMerge.title/split/merge/comingSoon`, `status.open/closed/resolved/paused`, `sort.closing/newest/activity`, `portfolio.reserved`, `ticket.previewToWin/averagePrice`, `notice.virtual`.
+New-key starter list (illustrative, all must be translated): `theme.toggle.light/dark`, `trade.mode.oneTap/market/limit`, `splitMerge.title/split/merge/comingSoon`, `status.open/closed/proposed/disputed/resolved/voided`, `sort.closing/newest/activity`, `portfolio.reserved`, `ticket.previewToWin/averagePrice`, `notice.virtual`.
 
 ## 12. Accessibility and interaction states
 
@@ -682,8 +686,8 @@ Decisions only the product owner can make. None of these are settled by this spe
 | D-11 | Split/Merge accounting spec approval (collateral def, debits/credits, create/burn, atomicity, idempotency, ledger records, lifecycle restrictions) | Whole-feature correctness | separate spec process (spec-before-code) | Required before any implementation | §9.4 functionality |
 | D-12 | Add order-cancel button on Portfolio open-orders rows? | Convenience vs UI surface of financial action | portfolio cancel / keep market-page only | Approve portfolio cancel (server path already exists; UI work only) | E-03 |
 | D-13 | Approve later-phase data instrumentation for volume/daily-volume/24h change/liquidity? | Enables Polymarket-style stats later | instrument in Phase 2 / defer to Phase 5 readiness | Instrument in Phase 2 alongside MMK migration; show nothing in 2A | A-07, B cards meta row, D-13-related spec |
-| D-14 | Discovery status filter (Open / Closing week / Resolved) and “Resolved” feed? | Server query support required | Open-only / Open+Resolved / +Closing-week | Ship Open + Resolved if API supports; else defer | B-03 |
-| D-15 | Homepage featured strip: deterministic highest-OI top-3 or omit/editorial? | Avoid implied curation bias | OI-deterministic / editorial / omit | OI-deterministic, labelled “Most active” | A-04 |
+| D-14 | Discovery status filter (Open / Closing week / Resolved) and a “Resolved” feed? **Not possible at the baseline:** `/api/markets` has no `status` param and `ListOptions` has no status field; `listMarkets` filters only draft/pending_review out. | Server query + domain support required; client-side status filtering is not a correct substitute across paginated catalogue results | none (not available) / add server-side status filter (Phase 2-era backend work) / defer entirely | Defer; do not ship any status filter in 2A. If owner wants one, approve a server-side `status` filter first (states must be limited to publicly visible ones) — also unlocks true open-only “Closing soon” sort semantics (A-06) | B-03, A-06 |
+| D-15 | Homepage featured strip: deterministic highest-OI top-3 or omit/editorial? | Avoid implied curation bias **and implying non-existent activity metrics** | OI-deterministic / editorial / omit | OI-deterministic, labelled “Highest open interest” (the only underlying metric) | A-04 |
 | D-16 | MMK migration display: confirm legacy Pya stays invisible post-migration and all new UI ships whole-MMK only? Also confirm rate = 1 kyat = 100 Pya conversion display PR plan? | Prevents unit confusion | full replacement PR / dual-display interim | Single migration PR per approved MMK spec; no dual display | §9 warning, §8.3, L-04 |
 | D-17 | Glossary/native review of Burmese trading terminology (Buy=?, shares=?, “Estimated to win”=?) | Trust + literacy | internal translation / native reviewer round | Native review before string freeze | L-11, all new keys |
 | D-18 | When does Phase 2A work start, and in what order (visual system → page redesigns → compact trading interface)? (roadmap open question) | Scheduling; Phase 1 gate applies first | tokens→home→detail→portfolio→auth / compact-ticket first / homepage first | Tokens → Home → Detail → Portfolio → Auth, per §16.2; 2A starts only after Phase 1 exit is verified | Everything in §16.2–16.3 |
@@ -753,15 +757,15 @@ One PR per surface, each self-contained: tokens+theme first; then Home; then Det
 
 ### 17.2 For implementation PRs (when authorized)
 
-- [ ] Tokens contrast report (light **and** dark if shipped) ≥ AA — attached to PR.
+- [ ] Token contrast report (light **and** dark) attached per §8.9 method: computed ratios for every token pair against every surface (§8.2 table) **plus** in-browser verification incl. hover/focus/disabled/error states. Meaningful boundaries (`--line-strong`) ≥ 3:1; text ≥ 4.5:1 (3:1 large). Any failing pair fixed before merge.
 - [ ] All new strings in `dictionary.ts` EN+MY; parity tests green; no untranslated literals (grep CI rule or manual review).
-- [ ] Tests pass: unit (money, localization, reservations), integration (order placement idempotency), e2e smoke (home → detail → place limit order on local Supabase? local test DB) — no weakening CI.
+- [ ] Tests pass: unit (money, localization, reservations), integration (order placement idempotency), e2e smoke (home → detail → place limit order against a PGlite-backed local/CI database, as `npm run test:integration` does, and against PostgreSQL for the `npm run test:postgres` gate) — no weakening CI; do not introduce Supabase or any new test service.
 - [ ] Viewport review at 1366×768, 1440×900, 390×844, 320 px — screenshots attached.
 - [ ] Keyboard-only walkthrough: nav → search → chips → card → ticket → place/cancel order → portfolio; skip link works.
 - [ ] Screen-reader spot check (NVDA or VoiceOver): status pill announces state; chips announce pressed; live region announces result count; errors announce.
 - [ ] `prefers-reduced-motion` respected; 200 % zoom reflows; no horizontal scroll at 320 px.
 - [ ] Virtual-credit disclosure visible on Home, Detail, Portfolio, Auth, How-it-works in both themes.
-- [ ] No forbidden strings: “volume”, “24h change”, “liquidity”, “$”, “USDC”, “deposit”, “withdraw”, “profit guaranteed”, “risk-free”, real-money claims.
+- [ ] No forbidden strings in new UI copy: “volume”, “24h change”, “liquidity”, “$”, “USDC”, “profit guaranteed”, “risk-free”, or real-money offer/claim language. **Exception:** the fixed `notice.virtual` disclosure is required verbatim and is exempt — it legitimately names “deposit” and “withdrawal” to state that none exist. The ban targets real-money functionality and misleading claims, not the safety disclosure that prohibits them.
 - [ ] No Pya values labelled “MMK” pre-migration; no fractional MMK anywhere post-migration.
 - [ ] Dead/test UI removed from production surfaces (e.g., unreferenced `.demo-ribbon` CSS remains in `globals.css`); roadmap 2A.2 compliance.
 - [ ] Feature-gated tabs (1-Tap, Market) and Split/Merge render inert with “Soon” labeling; zero network calls (verified by network tab / e2e assertion).
