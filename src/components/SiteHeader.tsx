@@ -8,6 +8,7 @@ import { localePath, otherLocaleOf } from "@/src/lib/locale";
 import type { Dictionary } from "@/src/i18n/dictionary";
 import type { SessionUser } from "@/src/lib/api-client";
 import { money } from "@/src/components/ui/format";
+import { ThemeToggle } from "@/src/components/ThemeToggle";
 
 type Props = {
   locale: Locale;
@@ -119,6 +120,7 @@ export function SiteHeader({
             </Link>
           </>
         )}
+        <ThemeToggle t={t} />
       </div>
 
       <div className="menu-wrap">

@@ -11,7 +11,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#050912",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e1514" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
@@ -24,6 +27,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="my">
       <body>
+        {/* Pre-paint theme stamp (Phase 2A, roadmap 2A.5 no-flash). Reads the
+            device-local persisted choice, falling back to the OS preference,
+            and sets data-theme before first paint. Persistence mechanism is
+            D-08 (PARKED) — currently the spec's non-binding localStorage
+            placeholder; it may be swapped when D-08 is answered. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var d=window.localStorage.getItem('khanthman-theme');" +
+              "if(d!=='light'&&d!=='dark'){d=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}" +
+              "document.documentElement.dataset.theme=d;}catch(e){}})();",
+          }}
+        />
         <a className="skip-link" href="#markets">
           Skip to content
         </a>
