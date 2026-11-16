@@ -1,6 +1,6 @@
 # Khant Hman — Phase 2A UI/UX Design Specification
 
-> **Status:** DRAFT FOR PRODUCT-OWNER REVIEW — not approved, not implemented. Revision 5 (2026-11-16): Codex round 4 findings addressed (4). Cumulatively, rounds 1–4 (21 findings) addressed across revisions 2–5; Owner Decision Register D-01…D-18 recorded PARKED/DEFERRED per owner instruction. See Appendix D (Revision history).
+> **Status:** DRAFT FOR PRODUCT-OWNER REVIEW — not approved, not implemented. Revision 6 (2026-11-16): Codex round 5 findings addressed (3). Cumulatively, rounds 1–5 (24 findings) addressed across revisions 2–6; Owner Decision Register D-01…D-18 recorded PARKED/DEFERRED per owner instruction. See Appendix D (Revision history).
 > **Audience:** Product owner (review/approval), then implementation engineers.
 > **Scope of this document:** design and UX only. No application code, schema, seed, API, financial logic, build or deployment is authorized or performed by this file.
 > **Current phase reminder:** Phase 1 (working local web application) is **not** complete; Phase 2A implementation must not begin until its roadmap gates are satisfied (§16).
@@ -208,7 +208,8 @@ Layouts below are **proposals requiring implementation verification**; no device
 ├─────────────────────────────────────────────────────────────┤
 │ Hero band (compact): product promise + virtual CTA          │
 ├─────────────────────────────────────────────────────────────┤
-│ Market snapshot strip (3 featured/highest-OI markets)       │
+│ Featured strip (optional — only if D-15 is approved;        │
+│ otherwise omit the row entirely)                            │
 ├───────────────────┬─────────────────────────────────────────┤
 │ Category panel    │ Feed controls: chips · sort select      │
 │ (vertical list,   ├─────────────────────────────────────────┤
@@ -496,7 +497,7 @@ All pairs must hit **WCAG 2.2 AA**: 4.5:1 body text; 3:1 large text; **3:1 for n
 
 **Approved boundaries:** BUY/SELL; **whole-MMK amount input** (no decimals); available-cash display (EXISTING wallet data); presets **500 / 1,000 / 5,000 / 10,000 MMK**; **Estimated To Win** and **Average Price** in the preview; **execution preview before final Buy/Sell confirmation**.
 
-**UI (inert in 2A):** mode body shows: available line (“Available: {n} ကျပ်”), amount input with `inputmode="numeric"`, preset chips, preview rows (Estimated to win / Average price / Cost), disabled CTA “Review order”. No semantics implemented.
+**UI (inert in 2A):** mode body shows: available line — **rendered only after the Phase 2 MMK migration (whole MMK) or, pre-migration, with the legacy value explicitly labelled “Pya (legacy)”; never a live, unconverted Pya balance presented as ကျပ်** — amount input with `inputmode="numeric"`, preset chips, preview rows (Estimated to win / Average price / Cost), disabled CTA “Review order”. No semantics implemented.
 
 **Required before build:** matching/execution engine spec (walk the book vs auction vs crossing engine), partial fills, price impact, slippage tolerance default, quote computation & validity window, max-cost reservation rules, failure atomicity, rate limiting. Owner decisions D-03, D-16. **This spec does not define them.**
 
@@ -520,8 +521,8 @@ All pairs must hit **WCAG 2.2 AA**: 4.5:1 body text; 3:1 large text; **3:1 for n
 | State | Spec |
 |---|---|
 | Signed-out | Panel renders same layout, CTA → “Sign in to trade” (link), no preset/amount entry, book remains visible |
-| Insufficient credits | Inline banner (danger-surface) “Not enough virtual credits. Available: {n}.” + disabled CTA |
-| Market not effectively open | Panel disabled whenever `status !== "open"` **or `closeAt <= now`** (`isTradingAllowed`); CTA reads “Trading closed” / “Resolved” per lifecycle; joins the detail banner (C-08) |
+| Insufficient credits | Inline banner (danger-surface) “Not enough virtual credits. Available: {n}.” + disabled CTA — `{n}` shown in the current legacy unit until the MMK migration, then whole MMK; never an unconverted Pya value labelled as kyat |
+| Market not effectively open | **Placement** disabled whenever `status !== "open"` **or `closeAt <= now`** (`isTradingAllowed`); amount/price/quantity inputs and BUY/SELL controls disabled; CTA reads “Trading closed” / “Resolved” per lifecycle; joins the detail banner (C-08). **Cancellation of pre-existing open orders is NOT gated on market status** — the order-cancel path remains available (server-side `cancelOrder` does not require the market to be open, open orders are not auto-removed, and stranding reserved cash/shares is unacceptable). The “Open orders (n)” disclosure (§9.3) stays enabled; only new placements are blocked |
 | Submitting | CTA `aria-busy`, spinner + verb (“Placing…”), inputs disabled, no double submit (client key **and** server dedup) |
 | Failure | Inline `role=alert` with short reason + Retry button. **Never auto-retry.** A manual retry of an outcome-unknown submission must reuse the original idempotency key — or reconcile order state first (re-fetch wallet/orders) before offering Retry. The current `MarketView.submit` mints a fresh `newIdempotencyKey()` on every call (`src/components/MarketView.tsx:68`), so a naive retry is a distinct request the server cannot deduplicate; the redesign pins one key per user intent for the lifetime of the attempt and only re-enables submission after the outcome is known |
 | Success | Toast success + wallet refresh (EXISTING `refresh()`); clear inputs; keep outcome selection |
@@ -547,7 +548,7 @@ All entries below are **proposals requiring implementation verification** (no mo
 
 | Aspect | Desktop | Mobile |
 |---|---|---|
-| Order | Hero(≤200 px) → featured strip → category rail + feed grid → footer | Hero → featured (horizontal snap-scroll, 86% card width) → chip rail (horizontal scroll) → cards single column → footer |
+| Order | Hero(≤200 px) → featured strip (only if D-15 approved; otherwise omitted) → category rail + feed grid → footer | Hero → featured (only if D-15 approved; horizontal snap-scroll, 86% card width, else omitted) → chip rail (horizontal scroll) → cards single column → footer |
 | Columns | ≥1280: 3-col card grid (22 px radius none, flat) | 1 column; ≥560: 2-col for cards |
 | Category panel | Left rail (220 px, sticky) + feed right | Chips rail on top of feed (sticky under header optional) |
 | Loading | 6 skeleton cards | 4 skeletons |
@@ -849,4 +850,5 @@ From the 2026-11-15 audit (inline report; no saved artifacts): per-outcome rows 
 | 2 | `cd4aae9` | 2026-11-16 | Codex round 1 — seven findings: disclosure exemption in acceptance checklist; status filter marked unsupported (baseline has none); locale-prefixed nav links; `closing` relabelled “Earliest close date”; StatusPill mapped to the real public `MarketStatus` lifecycle states (`open`/`closed`/`proposed`/`disputed`/`resolved`/`voided`), invented `paused` removed, banners keyed to lifecycle; featured strip renamed “Highest open interest”; boundary tokens split (`--line` decorative vs `--line-strong` ≥ 3:1 meaningful) with a contrast-verification method/report requirement. Plus owner correction: test database reference corrected to PGlite (local/CI) and PostgreSQL (`test:postgres`); no Supabase. |
 | 3 | `8104a3b` | 2026-11-16 | Codex round 2 — seven findings: (1) A-04 featured strip ranking source must be scoped/approved (slice ≠ global; `sort=activity` has no open-only filter) or omitted/labelled; (2) trading availability is `status === open` **and** `closeAt > now` (`isTradingAllowed`; server rejects with `market_closed`) — ticket, banners, outcome buttons and featured selection must treat past-close “open” markets as closed; (3) manual retry of an outcome-unknown submission must reuse the original idempotency key (fresh key per attempt defeats server dedup; see `MarketView.tsx:68`); (4) dark-mode inputs use theme-mapped `--input-surface` (`#ffffff`/`#182220`), never hard white with light `--text`; (5) homepage hero “Browse markets” CTA targets `/${locale}#markets` (feed anchor `id="markets"`), not a bare self-link; (6) “Buy Yes/No” outcome buttons also set the ticket action to BUY — label and action can never disagree; (7) `OutcomeRow` split into `full` (detail, with BUY action) and `compact` (cards, informational only) — no nested interactive controls inside the card link. **Decisions D-01…D-18 recorded PARKED/DEFERRED** per owner instruction; no decisions invented; gates unchanged. |
 | 4 | `bdcb75f` | 2026-11-16 | Codex round 3 — three findings: (1) §17.2 now distinguishes automated DB/domain suites (`npm test` / `test:integration` / `test:postgres`) from a required **manual browser-level smoke** of home → detail → place/cancel limit order — `test:integration` does not exercise the UI journey, and no browser-automation suite is assumed; (2) §16.2/§16.3 state the proposed PR order is non-binding and conditioned on D-18 plus the §16.1 gates; (3) feature-gated inert controls require an activation guard (no handler / explicit no-op before any network call, for pointer and keyboard activation) in addition to `aria-disabled`; ties §§9.1, 9.4 and 12 to a zero-network-call test spy. |
-| 5 | PR #13 (this revision) | 2026-11-16 | Codex round 4 — four findings: (1) chart slot in §6.C made conditional on D-05 to match C-04; (2) disabled buttons specified with explicit `--surface-3`/`--muted` tokens (≈4.6:1/≈5.7:1 computed) instead of a 40% opacity wash that fails §8.9; (3) `WatchToggle` 36 px visual kept but given a ≥ 44 × 44 px hit area; (4) Burmese formatters must set `numberingSystem: 'latn'` (default `Intl.NumberFormat('my')` yields Myanmar digits). |
+| 5 | `9611158` | 2026-11-16 | Codex round 4 — four findings: (1) chart slot in §6.C made conditional on D-05 to match C-04; (2) disabled buttons specified with explicit `--surface-3`/`--muted` tokens (≈4.6:1/≈5.7:1 computed) instead of a 40% opacity wash that fails §8.9; (3) `WatchToggle` 36 px visual kept but given a ≥ 44 × 44 px hit area; (4) Burmese formatters must set `numberingSystem: 'latn'` (default `Intl.NumberFormat('my')` yields Myanmar digits). |
+| 6 | PR #13 (this revision) | 2026-11-16 | Codex round 5 — three findings: (1) §6.A wireframe and §10.2 layouts mark the featured strip as conditional on D-15 approval (A-04 governs; omit otherwise); (2) §9.2 available-cash line and §9.5 insufficient-credits banner never render an unconverted Pya wallet balance as ကျပ် — display is gated on the Phase 2 MMK migration or labelled “Pya (legacy)”; (3) §9.5 now disables only new placement when a market is not effectively open — cancellation of pre-existing open orders remains available (server cancel path is not status-gated), so reserved cash/shares cannot be stranded. |
